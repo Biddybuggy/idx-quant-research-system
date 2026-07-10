@@ -1,6 +1,6 @@
-.venv/
-data/
-site/
+/.venv/
+/data/
+/site/
 __pycache__/
 *.pyc
 .DS_Store
