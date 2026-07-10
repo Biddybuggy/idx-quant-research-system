@@ -7,7 +7,8 @@ Indonesia Stock Exchange (IDX), with a mobile dashboard designed for iPhone.
 advice. The paper portfolio uses imaginary money.**
 
 - Full design, roadmap, failure modes, promotion checklists: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
-- Cloud deployment + iPhone setup: [docs/DEPLOY.md](docs/DEPLOY.md)
+- **Free deployment (GitHub Actions + Pages) + iPhone setup: [docs/DEPLOY_GITHUB.md](docs/DEPLOY_GITHUB.md)**
+- Paid always-on server alternative (Fly.io, adds password protection): [docs/DEPLOY.md](docs/DEPLOY.md)
 - All assumptions (universe, costs, lot size, risk limits, strategy params): [config/settings.yaml](config/settings.yaml)
 
 ## Quick start (research)
