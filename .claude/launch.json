@@ -1,0 +1,18 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "dashboard",
+      "runtimeExecutable": ".venv/bin/python",
+      "runtimeArgs": ["-m", "uvicorn", "idxquant.api.app:app", "--port", "8642"],
+      "port": 8642,
+      "env": { "DISABLE_SCHEDULER": "1" }
+    },
+    {
+      "name": "static-site",
+      "runtimeExecutable": ".venv/bin/python",
+      "runtimeArgs": ["-m", "http.server", "8644", "--directory", "site"],
+      "port": 8644
+    }
+  ]
+}

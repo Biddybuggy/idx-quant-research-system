@@ -1,0 +1,50 @@
+# All tunable assumptions live here. Changing risk/cost numbers should be a
+# deliberate, committed act — not an in-code tweak.
+
+universe:
+  # Liquid IDX large caps with history back to ~2010. CAVEAT (survivorship):
+  # this list is chosen from names that are liquid TODAY, so absolute backtest
+  # numbers are optimistic; treat relative comparisons as the signal.
+  tickers: [BBCA.JK, BBRI.JK, BMRI.JK, BBNI.JK, TLKM.JK, ASII.JK, UNTR.JK,
+            INDF.JK, ICBP.JK, KLBF.JK, UNVR.JK, SMGR.JK, PGAS.JK, ANTM.JK,
+            INCO.JK, ADRO.JK, PTBA.JK, JSMR.JK, EXCL.JK, CPIN.JK, AKRA.JK]
+  index_ticker: "^JKSE"        # IHSG / JCI benchmark + regime input
+  benchmark_stock: BBCA.JK
+
+data:
+  start: "2010-01-01"
+  db_path: data/idx.sqlite
+  # validation
+  max_daily_move: 0.35         # beyond IDX auto-rejection upper band -> flag
+  min_price: 50.0              # IDX minimum price floor (gocap)
+
+costs:
+  buy_commission: 0.0015       # broker fee, buy side
+  sell_commission: 0.0025      # broker fee + 0.1% sales tax
+  half_spread: 0.0010          # large-cap assumption; revisit per ticker
+  slippage: 0.0010             # market-impact allowance on top of spread
+
+market:
+  lot_size: 100
+  min_adv_idr: 10.0e9          # skip names with 20d avg traded value < IDR 10bn
+  max_adv_participation: 0.01  # position value <= 1% of 20d avg daily traded value
+
+portfolio:
+  initial_cash: 100000000      # IDR 100m notional research portfolio
+  max_weight: 0.25             # per-name cap
+  # entries are equal-weighted across active signals, then capped at max_weight
+
+risk:
+  regime_sma: 200              # long only when JCI > its 200d SMA
+  max_drawdown_halt: 0.20      # liquidate + block entries when portfolio DD exceeds this
+  halt_cooloff_days: 20        # trading days flat before re-entry allowed
+
+strategy:
+  name: momentum            # active strategy: momentum | sma_crossover
+  # cross-sectional momentum params
+  lookback: 252             # ~12 months
+  skip: 21                  # ~1 month (short-term reversal skip)
+  top_n: 3
+  # sma_crossover params (kept for comparison runs)
+  fast: 20
+  slow: 100

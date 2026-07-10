@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Dasbor Saham</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#f9f9f7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0d0d0d" media="(prefers-color-scheme: dark)">
+<style>
+:root{
+  --page:#f9f9f7; --surface:#fcfcfb; --ink:#0b0b0b; --ink-2:#52514e; --muted:#898781;
+  --grid:#e1e0d9; --baseline:#c3c2b7; --border:rgba(11,11,11,.10);
+  --series:#2a78d6; --up:#006300; --down:#d03b3b;
+  --good:#0ca30c; --warn:#fab219; --crit:#d03b3b;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --page:#0d0d0d; --surface:#1a1a19; --ink:#ffffff; --ink-2:#c3c2b7; --muted:#898781;
+    --grid:#2c2c2a; --baseline:#383835; --border:rgba(255,255,255,.10);
+    --series:#3987e5; --up:#0ca30c; --down:#d03b3b;
+  }
+}
+*{box-sizing:border-box;margin:0}
+body{background:var(--page);color:var(--ink);
+  font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
+  -webkit-font-smoothing:antialiased;
+  padding:max(12px,env(safe-area-inset-top)) 12px calc(24px + env(safe-area-inset-bottom))}
+.wrap{max-width:480px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
+header{display:flex;align-items:center;justify-content:space-between;padding:4px 4px 0}
+header h1{font-size:17px;font-weight:650}
+.asof{color:var(--muted);font-size:12px}
+.lang{border:1px solid var(--border);border-radius:999px;background:var(--surface);
+  color:var(--ink-2);font-size:12px;padding:4px 10px;cursor:pointer}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:16px}
+.banner{border-radius:12px;padding:10px 14px;font-size:13.5px;display:flex;gap:8px;align-items:center}
+.banner.warn{background:color-mix(in srgb,var(--warn) 14%,var(--surface));}
+.banner.crit{background:color-mix(in srgb,var(--crit) 12%,var(--surface));}
+.status{font-size:15px;line-height:1.45;color:var(--ink);margin-bottom:14px}
+.label{font-size:12.5px;color:var(--ink-2);margin-bottom:2px}
+.hero{font-size:40px;font-weight:650;letter-spacing:-.5px;line-height:1.1}
+.hero .cur{font-size:20px;font-weight:550;color:var(--ink-2);margin-right:2px}
+.deltas{display:flex;gap:14px;margin-top:8px;font-size:13.5px}
+.delta.up{color:var(--up)} .delta.down{color:var(--down)} .delta.flat{color:var(--muted)}
+.delta small{color:var(--muted);font-size:12px;margin-left:3px}
+h2{font-size:13px;font-weight:600;color:var(--ink-2);text-transform:none;margin-bottom:10px}
+.eqchart{width:100%;height:auto;display:block}
+.eqchart .grid{stroke:var(--grid);stroke-width:1}
+.eqchart .marker{stroke:var(--baseline);stroke-width:1}
+.eqchart .tick{fill:var(--muted);font-size:9.5px;font-variant-numeric:tabular-nums}
+.eqchart .area{fill:var(--series);opacity:.10}
+.eqchart .line{fill:none;stroke:var(--series);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.eqchart .hov-x{stroke:var(--baseline);stroke-width:1}
+.eqchart .hov-dot{fill:var(--series);stroke:var(--surface);stroke-width:2}
+.chartwrap{position:relative}
+.tip{position:absolute;pointer-events:none;background:var(--ink);color:var(--page);
+  border-radius:8px;padding:5px 9px;font-size:12px;display:none;white-space:nowrap;
+  transform:translate(-50%,-115%)}
+.tip b{font-variant-numeric:tabular-nums}
+.caption{color:var(--muted);font-size:11.5px;margin-top:8px;line-height:1.4}
+.row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;
+  border-bottom:1px solid var(--grid)}
+.row:last-child{border-bottom:none;padding-bottom:0}
+.row:first-of-type{padding-top:2px}
+.tk{font-weight:600;font-size:14.5px}
+.sub{color:var(--muted);font-size:12px;margin-top:1px}
+.num{text-align:right;font-variant-numeric:tabular-nums;font-size:13.5px}
+.badge{display:inline-flex;align-items:center;gap:5px;border-radius:999px;
+  padding:3px 10px;font-size:12px;font-weight:600}
+.badge.buy{background:color-mix(in srgb,var(--good) 14%,var(--surface));color:var(--ink)}
+.badge.sell{background:color-mix(in srgb,var(--crit) 12%,var(--surface));color:var(--ink)}
+.badge.hold{background:color-mix(in srgb,var(--series) 12%,var(--surface));color:var(--ink)}
+.badge .dot{width:7px;height:7px;border-radius:50%}
+.badge.buy .dot{background:var(--good)} .badge.sell .dot{background:var(--crit)}
+.badge.hold .dot{background:var(--series)}
+.reason{color:var(--ink-2);font-size:13px;line-height:1.5;margin-top:6px}
+.empty{color:var(--ink-2);font-size:13.5px;line-height:1.5}
+footer{color:var(--muted);font-size:11.5px;line-height:1.55;text-align:center;padding:4px 12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1 data-id="Dasbor Saham" data-en="Stock Dashboard">Dasbor Saham</h1>
+      <div class="asof"><span data-id="per" data-en="as of">per</span> {{ as_of }}</div>
+    </div>
+    <button class="lang" onclick="toggleLang()" id="langbtn">EN</button>
+  </header>
+
+  {% if stale %}
+  <div class="banner warn">⚠️ <span data-id="Data belum diperbarui beberapa hari. Angka di bawah mungkin lama."
+    data-en="Data hasn't updated for a few days. Numbers below may be old.">Data belum diperbarui beberapa hari. Angka di bawah mungkin lama.</span></div>
+  {% endif %}
+  {% if halted %}
+  <div class="banner crit">⛔ <span data-id="Pelindung risiko aktif: sistem berhenti sementara dan menjual semua posisi latihan."
+    data-en="Risk protection active: the system paused and sold all practice positions.">Pelindung risiko aktif: sistem berhenti sementara dan menjual semua posisi latihan.</span></div>
+  {% endif %}
+
+  <section class="card">
+    <p class="status" data-id="{{ status_id }}" data-en="{{ status_en }}">{{ status_id }}</p>
+    <div class="label" data-id="Nilai portofolio latihan" data-en="Practice portfolio value">Nilai portofolio latihan</div>
+    <div class="hero"><span class="cur">Rp</span>{{ equity_str }}</div>
+    <div class="deltas">
+      <span class="delta {{ 'up' if ret_day > 0.0001 else 'down' if ret_day < -0.0001 else 'flat' }}">
+        {{ '▲' if ret_day > 0.0001 else '▼' if ret_day < -0.0001 else '•' }} {{ '%+.2f' % (ret_day*100) }}%
+        <small data-id="hari ini" data-en="today">hari ini</small></span>
+      <span class="delta {{ 'up' if ret_start > 0.0001 else 'down' if ret_start < -0.0001 else 'flat' }}">
+        {{ '▲' if ret_start > 0.0001 else '▼' if ret_start < -0.0001 else '•' }} {{ '%+.2f' % (ret_start*100) }}%
+        <small data-id="sejak awal" data-en="since start">sejak awal</small></span>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2 data-id="Perjalanan portofolio" data-en="Portfolio over time">Perjalanan portofolio</h2>
+    <div class="chartwrap">
+      {{ chart_svg | safe }}
+      <div class="tip" id="tip"></div>
+    </div>
+    {% if backfill_until %}
+    <p class="caption" data-id="Kurva sebelum {{ backfill_until }} adalah simulasi pemanasan; setelahnya adalah paper trading harian. Semuanya uang latihan, bukan uang sungguhan."
+       data-en="The curve before {{ backfill_until }} is a simulated warm-up; after that it is daily paper trading. All of it is practice money, not real money.">
+      Kurva sebelum {{ backfill_until }} adalah simulasi pemanasan; setelahnya adalah paper trading harian. Semuanya uang latihan, bukan uang sungguhan.</p>
+    {% endif %}
+  </section>
+
+  <section class="card">
+    <h2 data-id="Saham yang dipegang" data-en="Current holdings">Saham yang dipegang</h2>
+    {% if positions %}
+      {% for p in positions %}
+      <div class="row">
+        <div><div class="tk">{{ p.ticker.replace('.JK','') }}</div>
+          <div class="sub">{{ p.shares }} <span data-id="lembar" data-en="shares">lembar</span> · <span data-id="sejak" data-en="since">sejak</span> {{ p.entry_date }}</div></div>
+        <div class="num">Rp {{ '{:,.0f}'.format(p.value_idr).replace(',', '.') }}<br>
+          <span class="delta {{ 'up' if p.pnl_pct > 0 else 'down' if p.pnl_pct < 0 else 'flat' }}">
+          {{ '▲' if p.pnl_pct > 0 else '▼' if p.pnl_pct < 0 else '•' }} {{ '%+.1f' % (p.pnl_pct*100) }}%</span></div>
+      </div>
+      {% endfor %}
+    {% else %}
+      <p class="empty" data-id="Tidak ada — semua dana aman di posisi tunai. Sistem menunggu kondisi pasar membaik."
+         data-en="None — all funds are safely in cash. The system is waiting for better market conditions.">
+        Tidak ada — semua dana aman di posisi tunai. Sistem menunggu kondisi pasar membaik.</p>
+    {% endif %}
+  </section>
+
+  <section class="card">
+    <h2 data-id="Sinyal hari ini" data-en="Today's signals">Sinyal hari ini</h2>
+    {% if active_signals %}
+      {% for s in active_signals %}
+      <div class="row" style="display:block">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span class="tk">{{ s.ticker.replace('.JK','') }}</span>
+          <span class="badge {{ s.css }}"><span class="dot"></span>{{ s.label_id }}</span>
+        </div>
+        <p class="reason">{{ s.reasoning }}</p>
+      </div>
+      {% endfor %}
+    {% else %}
+      <p class="empty" data-id="Tidak ada transaksi yang direncanakan untuk besok."
+         data-en="No trades planned for tomorrow.">Tidak ada transaksi yang direncanakan untuk besok.</p>
+    {% endif %}
+    {% if n_waiting %}
+    <p class="caption" style="margin-top:10px">
+      <span data-id="{{ n_waiting }} saham lain dipantau, belum ada aksi."
+            data-en="{{ n_waiting }} other stocks watched, no action yet.">{{ n_waiting }} saham lain dipantau, belum ada aksi.</span></p>
+    {% endif %}
+  </section>
+
+  {% if recent_trades %}
+  <section class="card">
+    <h2 data-id="Aktivitas terakhir" data-en="Recent activity">Aktivitas terakhir</h2>
+    {% for t in recent_trades %}
+    <div class="row">
+      <div><div class="tk">{{ t.ticker.replace('.JK','') }}</div>
+        <div class="sub">{{ t.entry_date }} → {{ t.exit_date }}</div></div>
+      <div class="num"><span class="delta {{ 'up' if t.return_pct > 0 else 'down' }}">
+        {{ '▲' if t.return_pct > 0 else '▼' }} {{ '%+.1f' % (t.return_pct*100) }}%</span></div>
+    </div>
+    {% endfor %}
+  </section>
+  {% endif %}
+
+  <footer>
+    <span data-id="Ini portofolio latihan (paper trading) dengan uang tidak sungguhan, untuk riset. Bukan saran investasi. Harga: penutupan harian IDX, bisa tertunda."
+          data-en="This is a practice (paper-trading) portfolio with imaginary money, for research. Not investment advice. Prices: IDX daily close, may be delayed.">
+      Ini portofolio latihan (paper trading) dengan uang tidak sungguhan, untuk riset. Bukan saran investasi. Harga: penutupan harian IDX, bisa tertunda.</span>
+  </footer>
+</div>
+
+<script>
+// ---- language toggle (ID default) ----
+function applyLang(l){
+  document.querySelectorAll('[data-id]').forEach(function(el){
+    el.textContent = el.dataset[l];
+  });
+  document.getElementById('langbtn').textContent = l === 'id' ? 'EN' : 'ID';
+  document.documentElement.lang = l;
+}
+function toggleLang(){
+  var l = (localStorage.getItem('lang') || 'id') === 'id' ? 'en' : 'id';
+  localStorage.setItem('lang', l); applyLang(l);
+}
+applyLang(localStorage.getItem('lang') || 'id');
+
+// ---- chart hover: crosshair + tooltip ----
+(function(){
+  var svg = document.querySelector('.eqchart'); if(!svg) return;
+  var pts = JSON.parse(svg.dataset.pts);
+  var tip = document.getElementById('tip');
+  var hx = svg.querySelector('.hov-x'), dot = svg.querySelector('.hov-dot');
+  function show(ev){
+    var r = svg.getBoundingClientRect();
+    var cx = ev.touches ? ev.touches[0].clientX : ev.clientX;
+    var vx = (cx - r.left) / r.width * 360;
+    var best = pts[0], bd = 1e9;
+    pts.forEach(function(p){ var d = Math.abs(p[0]-vx); if(d<bd){bd=d;best=p;} });
+    hx.setAttribute('x1', best[0]); hx.setAttribute('x2', best[0]);
+    hx.style.display = 'block';
+    dot.setAttribute('cx', best[0]); dot.setAttribute('cy', best[1]);
+    dot.style.display = 'block';
+    tip.innerHTML = best[2] + '<br><b>Rp ' + best[3] + '</b>';
+    tip.style.display = 'block';
+    var tw = tip.offsetWidth / 2 + 4;
+    var lx = Math.min(Math.max(best[0] / 360 * r.width, tw), r.width - tw);
+    tip.style.left = lx + 'px';
+    tip.style.top  = Math.max(best[1] / 180 * r.height, 34) + 'px';
+  }
+  function hide(){ tip.style.display='none'; hx.style.display='none'; dot.style.display='none'; }
+  svg.addEventListener('pointermove', show);
+  svg.addEventListener('touchmove', function(e){ show(e); e.preventDefault(); }, {passive:false});
+  svg.addEventListener('pointerleave', hide);
+  svg.addEventListener('touchend', hide);
+})();
+</script>
+</body>
+</html>

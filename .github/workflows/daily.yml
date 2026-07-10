@@ -1,0 +1,66 @@
+name: daily
+
+on:
+  schedule:
+    - cron: "45 10 * * *"     # 10:45 UTC = 17:45 WIB, after IDX close
+  workflow_dispatch: {}        # manual "Run workflow" button
+
+permissions:
+  contents: write              # commit state/ back to the repo
+  pages: write                 # deploy the static dashboard
+  id-token: write
+
+concurrency:
+  group: daily-job
+  cancel-in-progress: false
+
+jobs:
+  daily:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Restore paper-portfolio state
+        run: python scripts/state_sync.py import
+
+      - name: Run daily job (ingest -> paper -> signal -> Telegram)
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_IDS: ${{ secrets.TELEGRAM_CHAT_IDS }}
+        run: python scripts/daily_job.py
+
+      - name: Save paper-portfolio state
+        run: python scripts/state_sync.py export
+
+      - name: Commit state back to repo
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add state/
+          git diff --cached --quiet || git commit -m "chore: daily state $(date -u +%F)"
+          git push
+
+      - name: Build static dashboard
+        run: python scripts/build_static.py
+
+      - uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - id: deployment
+        uses: actions/deploy-pages@v4

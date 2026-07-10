@@ -1,0 +1,8 @@
+.venv/
+data/
+site/
+__pycache__/
+*.pyc
+.DS_Store
+# NOTE: state/ is committed on purpose — it is the paper portfolio's memory
+# between GitHub Actions runs.

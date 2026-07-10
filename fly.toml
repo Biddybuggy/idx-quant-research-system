@@ -1,0 +1,21 @@
+# Fly.io config. See docs/DEPLOY.md for the full walkthrough.
+app = "idx-dashboard-dylan"    # must be globally unique on Fly.io; change if taken
+primary_region = "sin"          # Singapore: closest region to IDX/WIB
+
+[build]
+
+[mounts]
+  source = "idxdata"
+  destination = "/app/data"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  # keep the machine always on: the in-process scheduler must be awake at 17:45 WIB
+  auto_stop_machines = false
+  auto_start_machines = true
+  min_machines_running = 1
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"
