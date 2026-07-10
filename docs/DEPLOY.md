@@ -20,7 +20,7 @@ keeps one small machine always on with a persistent disk.
 ```bash
 brew install flyctl && fly auth signup      # or fly auth login
 
-cd idx_trading
+cd idx_quant_research_system
 # edit fly.toml: change app = "idx-dashboard" to something globally unique
 
 fly launch --no-deploy --copy-config        # accept the existing fly.toml

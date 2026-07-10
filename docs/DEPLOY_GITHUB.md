@@ -27,7 +27,7 @@ dashboard as a static page on GitHub Pages.
 ### 1. Push the project to a public GitHub repo
 
 ```bash
-cd ~/Documents/programming_folder/idx_trading
+cd ~/Documents/programming_folder/idx_quant_research_system
 git init -b main           # if not already done
 git add -A && git commit -m "IDX quant paper-trading system"
 # create a PUBLIC repo named e.g. idx-trading on github.com, then:

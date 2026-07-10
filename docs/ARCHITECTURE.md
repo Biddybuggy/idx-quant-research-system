@@ -106,7 +106,7 @@ IDX-licensed data / broker API (Phase 6). Never rely on ToS-violating scraping.
 ## 3. Project folder structure
 
 ```
-idx_trading/
+idx_quant_research_system/
 ├── README.md
 ├── requirements.txt
 ├── config/
