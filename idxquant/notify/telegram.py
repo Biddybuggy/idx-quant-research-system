@@ -50,18 +50,20 @@ def compose_daily(signal_payload: dict, paper_summary: dict,
                if s["action"] in ("ENTER_LONG", "EXIT")]
     risk_off = signal_payload["regime"].startswith("risk-off")
 
-    lines = [f"📊 <b>Laporan harian — {signal_payload['as_of_close']}</b>"]
+    lines = [f"📊 <b>Laporan harian — tutup {signal_payload['as_of_close']}</b>"]
     if paper_summary.get("halted"):
         lines.append("⛔ Sistem sedang berhenti sementara (batas penurunan tercapai).")
     if actions:
+        lines.append("🗓️ <b>Rencana portofolio latihan untuk pembukaan besok:</b>")
         for s in actions:
-            verb = "beli (latihan)" if s["action"] == "ENTER_LONG" else "jual (latihan)"
-            lines.append(f"• {s['ticker'].replace('.JK', '')}: {verb} — "
+            verb = "BELI" if s["action"] == "ENTER_LONG" else "JUAL"
+            lines.append(f"• {verb} {s['ticker'].replace('.JK', '')} (latihan) — "
                          f"keyakinan {s['confidence']}")
     elif risk_off:
-        lines.append("Pasar sedang lesu — sistem menunggu di posisi aman (tidak ada saham).")
+        lines.append("🗓️ Rencana besok: tetap menunggu di posisi aman (tidak ada saham). "
+                     "Pasar sedang lesu.")
     else:
-        lines.append("Tidak ada transaksi hari ini; posisi tetap.")
+        lines.append("🗓️ Rencana besok: tidak ada transaksi; posisi dipertahankan.")
     if research_line:
         lines.append(research_line)
     lines.append(f"💼 Portofolio latihan: Rp {equity:,.0f} ({n_pos} saham)")
