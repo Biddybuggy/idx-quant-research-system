@@ -24,6 +24,7 @@ from fastapi.templating import Jinja2Templates
 
 from ..config import ROOT, load_config
 from ..data import db
+from ..research.report import market_overview, stock_research
 from .chart import equity_chart_svg
 
 TEMPLATES = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
@@ -210,6 +211,7 @@ def build_dashboard_context() -> dict | None:
     """All data the dashboard template needs. Shared by the live server and
     scripts/build_static.py (GitHub Pages) so both render the same page.
     Returns None if the paper portfolio isn't initialized."""
+    cfg = load_config()
     con = _con()
     eq = _equity_df(con)
     meta = _meta(con)
@@ -217,10 +219,19 @@ def build_dashboard_context() -> dict | None:
     recent = pd.read_sql(
         "SELECT ticker, entry_date, exit_date, return_pct FROM trades "
         "WHERE mode='paper' ORDER BY exit_date DESC LIMIT 5", con)
+    prices = {t: db.load_prices(con, t) for t in cfg.tickers}
+    index_close = db.load_prices(con, cfg.index_ticker)["Close"]
+    flagged = {r[0] for r in con.execute(
+        "SELECT DISTINCT ticker FROM data_quality "
+        "WHERE issue IN ('ingest_failed','extreme_move') AND date >= date('now','-30 days')")}
     con.close()
 
     if eq.empty:
         return None
+
+    held = {p["ticker"] for p in positions}
+    research = stock_research(prices, index_close, cfg, held, flagged)
+    market = market_overview(index_close, cfg)
 
     payload = _signal_payload() or {"signals": [], "regime": "?", "as_of_close": "?"}
     active = [s for s in payload["signals"] if s["action"] != "NO_POSITION"]
@@ -259,6 +270,7 @@ def build_dashboard_context() -> dict | None:
         "active_signals": active, "n_waiting": n_waiting,
         "recent_trades": recent.to_dict("records"),
         "halted": halted, "stale": stale_days > 5,
+        "research": research, "market": market,
     }
 
 

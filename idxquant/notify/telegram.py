@@ -40,7 +40,8 @@ def send(text: str) -> bool:
     return ok
 
 
-def compose_daily(signal_payload: dict, paper_summary: dict) -> str:
+def compose_daily(signal_payload: dict, paper_summary: dict,
+                  research_line: str = "") -> str:
     """One friendly EOD message, Indonesian first. Sent even on quiet days —
     silence must mean 'broken', never 'nothing happened'."""
     equity = paper_summary["equity"]
@@ -61,6 +62,8 @@ def compose_daily(signal_payload: dict, paper_summary: dict) -> str:
         lines.append("Pasar sedang lesu — sistem menunggu di posisi aman (tidak ada saham).")
     else:
         lines.append("Tidak ada transaksi hari ini; posisi tetap.")
+    if research_line:
+        lines.append(research_line)
     lines.append(f"💼 Portofolio latihan: Rp {equity:,.0f} ({n_pos} saham)")
     lines.append("<i>Ini latihan (paper trading), bukan uang sungguhan dan bukan saran investasi.</i>")
     return "\n".join(lines)

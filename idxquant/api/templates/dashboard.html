@@ -79,6 +79,31 @@ h2{font-size:13px;font-weight:600;color:var(--ink-2);text-transform:none;margin-
 .reason{color:var(--ink-2);font-size:13px;line-height:1.5;margin-top:6px}
 .empty{color:var(--ink-2);font-size:13.5px;line-height:1.5}
 footer{color:var(--muted);font-size:11.5px;line-height:1.55;text-align:center;padding:4px 12px}
+/* research section */
+.mkt{display:flex;gap:12px;flex-wrap:wrap;color:var(--ink-2);font-size:13px;
+  padding-bottom:10px;border-bottom:1px solid var(--grid);margin-bottom:4px}
+.mkt b{color:var(--ink);font-variant-numeric:tabular-nums;font-weight:600}
+details.stock{border-bottom:1px solid var(--grid)}
+details.stock:last-of-type{border-bottom:none}
+details.stock summary{display:flex;align-items:center;gap:10px;padding:11px 0;
+  cursor:pointer;list-style:none;-webkit-tap-highlight-color:transparent}
+details.stock summary::-webkit-details-marker{display:none}
+.rank{flex:0 0 24px;height:24px;border-radius:8px;background:var(--page);
+  border:1px solid var(--border);color:var(--ink-2);font-size:11.5px;font-weight:650;
+  display:flex;align-items:center;justify-content:center;font-variant-numeric:tabular-nums}
+.stock .mid{flex:1;min-width:0}
+.vlabel{font-size:11px;font-weight:600;margin-top:1px}
+.vlabel.buy{color:var(--up)} .vlabel.weak{color:var(--down)}
+.vlabel.hold{color:var(--series)} .vlabel.wait{color:var(--ink-2)}
+.vlabel.muted{color:var(--muted)}
+.arrow{color:var(--muted);font-size:14px}
+.chev{color:var(--muted);font-size:11px;transition:transform .15s;margin-left:2px}
+details[open] .chev{transform:rotate(90deg)}
+.detail{padding:2px 0 14px 34px}
+.dgrid{display:grid;grid-template-columns:1fr 1fr;gap:7px 16px;margin-bottom:8px}
+.dgrid div{font-size:12.5px;color:var(--muted)}
+.dgrid b{display:block;color:var(--ink);font-weight:600;font-size:13.5px;
+  font-variant-numeric:tabular-nums;margin-top:1px}
 </style>
 </head>
 <body>
@@ -112,6 +137,49 @@ footer{color:var(--muted);font-size:11.5px;line-height:1.55;text-align:center;pa
         {{ '▲' if ret_start > 0.0001 else '▼' if ret_start < -0.0001 else '•' }} {{ '%+.2f' % (ret_start*100) }}%
         <small data-id="sejak awal" data-en="since start">sejak awal</small></span>
     </div>
+  </section>
+
+  <section class="card">
+    <h2 data-id="Riset saham — peringkat momentum" data-en="Stock research — momentum ranking">Riset saham — peringkat momentum</h2>
+    <div class="mkt">
+      <span>IHSG <b>{{ market.level_str }}</b></span>
+      <span><span data-id="1 hari" data-en="1 day">1 hari</span> <b>{{ market.chg_1d_str }}</b></span>
+      <span><span data-id="1 bulan" data-en="1 month">1 bulan</span> <b>{{ market.chg_1m_str }}</b></span>
+      <span><span data-id="vs tren {{ market.sma_window }} hari" data-en="vs {{ market.sma_window }}-day trend">vs tren {{ market.sma_window }} hari</span> <b>{{ market.vs_sma_str }}</b></span>
+    </div>
+    {% for r in research %}
+    <details class="stock">
+      <summary>
+        <span class="rank">{{ r.rank if r.rank else '–' }}</span>
+        <div class="mid">
+          <div class="tk">{{ r.name }} <span class="arrow">{{ r.trend_arrow }}</span>{% if r.quality_flag %} ⚠️{% endif %}</div>
+          <div class="vlabel {{ r.view_css }}" data-id="{{ r.view }}" data-en="{{ r.view_en }}">{{ r.view }}</div>
+        </div>
+        <div class="num">Rp {{ r.close_str }}<br>
+          <span class="delta {{ 'up' if r.mom_12_1 and r.mom_12_1 > 0 else 'down' if r.mom_12_1 and r.mom_12_1 < 0 else 'flat' }}">{{ r.mom_str }}</span>
+          <small class="sub" data-id="12 bln" data-en="12 mo">12 bln</small></div>
+        <span class="chev">▶</span>
+      </summary>
+      <div class="detail">
+        <div class="dgrid">
+          <div><span data-id="Momentum 12-1" data-en="12-1 momentum">Momentum 12-1</span><b>{{ r.mom_str }}{% if r.rank %} · #{{ r.rank }}/{{ r.n_ranked }}{% endif %}</b></div>
+          <div><span data-id="Perubahan 1 bulan" data-en="1-month change">Perubahan 1 bulan</span><b>{{ r.chg_1m_str }}</b></div>
+          <div><span>RSI(14)</span><b>{{ r.rsi_str }} · <span data-id="{{ r.rsi_label }}" data-en="{{ 'overbought' if r.rsi_label == 'jenuh beli' else 'oversold' if r.rsi_label == 'jenuh jual' else 'neutral' }}">{{ r.rsi_label }}</span></b></div>
+          <div><span data-id="Dari puncak 52 mgg" data-en="From 52-wk high">Dari puncak 52 mgg</span><b>{{ r.pos_52w_str }}</b></div>
+          <div><span data-id="Volatilitas (tahunan)" data-en="Volatility (annualized)">Volatilitas (tahunan)</span><b>{{ r.vol_str }}</b></div>
+          <div><span data-id="Nilai transaksi/hari" data-en="Daily traded value">Nilai transaksi/hari</span><b>Rp {{ r.adv_str }} M</b></div>
+        </div>
+        <p class="reason">{{ r.view_reason }}</p>
+        {% if r.quality_flag %}
+        <p class="caption">⚠️ <span data-id="Ada anomali data untuk saham ini dalam 30 hari terakhir — periksa ulang angka sebelum dipakai."
+          data-en="A data anomaly was flagged for this stock in the last 30 days — double-check before relying on it.">Ada anomali data untuk saham ini dalam 30 hari terakhir — periksa ulang angka sebelum dipakai.</span></p>
+        {% endif %}
+      </div>
+    </details>
+    {% endfor %}
+    <p class="caption" data-id="Ini data dan pandangan sistem — bukan rekomendasi. Keputusan investasi sepenuhnya di tangan Anda."
+       data-en="This is data plus the system's view — not a recommendation. Investment decisions are entirely yours.">
+      Ini data dan pandangan sistem — bukan rekomendasi. Keputusan investasi sepenuhnya di tangan Anda.</p>
   </section>
 
   <section class="card">

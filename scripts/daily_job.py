@@ -21,6 +21,7 @@ from idxquant.data import db
 from idxquant.data.ingest import run_ingest
 from idxquant.notify import telegram
 from idxquant.paper.executor import process as paper_process
+from idxquant.research.report import stock_research, top_movers_line
 from idxquant.signals.generate import generate_signal_file
 from idxquant.strategies.factory import make_strategy
 
@@ -47,7 +48,10 @@ def run() -> dict:
         con.close()
 
         stage = "notify"
-        telegram.send(telegram.compose_daily(payload, paper_summary))
+        held = {p["ticker"] for p in paper_summary["positions"]}
+        research = stock_research(prices, index_close, cfg, held)
+        telegram.send(telegram.compose_daily(payload, paper_summary,
+                                             top_movers_line(research)))
         print("daily job OK:", paper_summary["processed_days"] or "no new days")
         return {"ok": True, "paper": paper_summary}
     except Exception as err:
