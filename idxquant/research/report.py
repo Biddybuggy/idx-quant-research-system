@@ -14,6 +14,7 @@ import pandas as pd
 
 from ..config import Config
 from ..features import indicators as ind
+from . import tactical
 
 
 def market_overview(index_close: pd.Series, cfg: Config) -> dict:
@@ -94,8 +95,9 @@ def stock_research(prices: dict[str, pd.DataFrame], index_close: pd.Series,
         rsi = float(ind.rsi(close).iloc[-1])
         hi_52w = float(close.rolling(252, min_periods=60).max().iloc[-1])
         adv = float(ind.avg_daily_value(df).iloc[-1])
+        atr_pct = float(ind.atr(df).iloc[-1] / c)
         view, reason = _view(t, rank, m, regime_on, held_tickers, top_n)
-        out.append({
+        card = {
             "ticker": t, "name": t.replace(".JK", ""),
             "close": c,
             "chg_1d": float(close.pct_change(1).iloc[-1]),
@@ -108,11 +110,18 @@ def stock_research(prices: dict[str, pd.DataFrame], index_close: pd.Series,
                           "jenuh jual" if rsi < 30 else "netral") if not np.isnan(rsi) else "-",
             "pos_52w": c / hi_52w - 1 if hi_52w > 0 else None,
             "vol_20d": float(ind.realized_vol(close).iloc[-1]),
-            "atr_pct": float(ind.atr(df).iloc[-1] / c),
+            "atr_pct": atr_pct,
             "adv_bn": adv / 1e9,
             "view": view, "view_reason": reason,
             "quality_flag": t in quality_flags,
-        })
+        }
+        # Short-term / tactical layer — leaders in a weak market, regime-agnostic.
+        card.update(tactical.compute(
+            close, index_close, df,
+            rsi=None if np.isnan(rsi) else rsi, atr_pct=atr_pct,
+            adv_bn=card["adv_bn"], min_adv_bn=cfg.min_adv_idr / 1e9,
+            flagged=t in quality_flags))
+        out.append(card)
     out.sort(key=lambda r: r["rank"] if r["rank"] is not None else 999)
     for r in out:
         _add_display_fields(r)
@@ -147,6 +156,7 @@ def _add_display_fields(r: dict) -> None:
     r["adv_str"] = f"{r['adv_bn']:,.0f}".replace(",", ".")
     r["trend_arrow"] = {"naik": "↗", "turun": "↘", "campuran": "→"}[r["trend"]]
     r["view_en"], r["view_css"] = _VIEW_META[r["view"]]
+    tactical.add_display_fields(r)
 
 
 def top_movers_line(research: list[dict], n: int = 3) -> str:

@@ -105,6 +105,28 @@ details[open] .chev{transform:rotate(90deg)}
 .dgrid div{font-size:12.5px;color:var(--muted)}
 .dgrid b{display:block;color:var(--ink);font-weight:600;font-size:13.5px;
   font-variant-numeric:tabular-nums;margin-top:1px}
+/* short-term opportunities */
+.opps{margin:12px 0 6px;padding:12px;border:1px solid var(--border);border-radius:10px;background:var(--page)}
+.opps .ohead{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}
+.opps .ohead h3{font-size:13px;font-weight:680;color:var(--ink)}
+.opps .otag{font-size:10.5px;font-weight:600;color:var(--up);border:1px solid var(--up);
+  border-radius:999px;padding:2px 8px;white-space:nowrap}
+.olist{display:flex;flex-direction:column;gap:7px}
+.orow{display:flex;align-items:center;flex-wrap:wrap;gap:2px 10px;padding:9px 11px;
+  border:1px solid var(--grid);border-radius:9px;background:var(--surface);width:100%;
+  text-align:left;font:inherit;color:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.orow:active{background:var(--page)}
+.orow .on{font-weight:680;font-size:14px}
+.orow .ors{color:var(--up);font-weight:600;font-size:12.5px;font-variant-numeric:tabular-nums;
+  white-space:nowrap}
+.orow .ors small{color:var(--muted);font-weight:500}
+.orow .ometa{margin-left:auto;text-align:right;color:var(--muted);font-size:11.5px;
+  font-variant-numeric:tabular-nums;white-space:nowrap}
+.orow .ometa b{color:var(--ink);font-weight:600}
+.opps .ocap{color:var(--muted);font-size:11px;line-height:1.5;margin-top:9px}
+.stsub{border-top:1px dashed var(--grid);margin-top:8px;padding-top:9px}
+.stsub .sthead{margin-bottom:7px}
+.stsub .vlabel{font-size:11.5px}
 
 @media (min-width:800px){
   body{padding:24px}
@@ -200,8 +222,33 @@ details[open] .chev{transform:rotate(90deg)}
       <span><span data-id="1 bulan" data-en="1 month">1 bulan</span> <b>{{ market.chg_1m_str }}</b></span>
       <span><span data-id="vs tren {{ market.sma_window }} hari" data-en="vs {{ market.sma_window }}-day trend">vs tren {{ market.sma_window }} hari</span> <b>{{ market.vs_sma_str }}</b></span>
     </div>
+    <div class="opps">
+      <div class="ohead">
+        <h3 data-id="Peluang jangka pendek hari ini" data-en="Today's short-term opportunities">Peluang jangka pendek hari ini</h3>
+        <span class="otag" data-id="lawan pasar lemah" data-en="against a weak market">lawan pasar lemah</span>
+      </div>
+      {% if opportunities %}
+      <div class="olist">
+        {% for o in opportunities %}
+        <button type="button" class="orow" data-goto="stock-{{ o.name }}">
+          <span class="on">{{ o.name }}</span>
+          <span class="ors">{{ o.rs20_str }} <small data-id="vs IHSG" data-en="vs JCI">vs IHSG</small></span>
+          <span class="ometa">
+            <span data-id="skor" data-en="score">skor</span> <b>{{ o.st_score }}</b> ·
+            <span data-id="batas rugi" data-en="stop">batas rugi</span> <b>{{ o.stop_pct_str }}</b>
+          </span>
+        </button>
+        {% endfor %}
+      </div>
+      <p class="ocap" data-id="Saham yang lebih kuat dari pasar dengan setup jangka pendek — dihitung dari harga penutupan harian, terlepas dari kondisi IHSG. Ini bukan sinyal intraday dan bukan jaminan untung; pakai batas rugi dan penilaian Anda."
+         data-en="Stocks stronger than the market with a clean short-term setup — computed from daily closes, independent of the JCI regime. Not an intraday signal and no guarantee of profit; use the stop and your own judgment.">Saham yang lebih kuat dari pasar dengan setup jangka pendek — dihitung dari harga penutupan harian, terlepas dari kondisi IHSG. Ini bukan sinyal intraday dan bukan jaminan untung; pakai batas rugi dan penilaian Anda.</p>
+      {% else %}
+      <p class="ocap" data-id="Belum ada saham yang menonjol lebih kuat dari pasar dengan setup jangka pendek yang bersih hari ini."
+         data-en="No stock stands out with clean relative strength and a short-term setup today.">Belum ada saham yang menonjol lebih kuat dari pasar dengan setup jangka pendek yang bersih hari ini.</p>
+      {% endif %}
+    </div>
     {% for r in research %}
-    <details class="stock">
+    <details class="stock" id="stock-{{ r.name }}">
       <summary>
         <span class="rank">{{ r.rank if r.rank else '–' }}</span>
         <div class="mid">
@@ -223,6 +270,17 @@ details[open] .chev{transform:rotate(90deg)}
           <div><span data-id="Nilai transaksi/hari" data-en="Daily traded value">Nilai transaksi/hari</span><b>Rp {{ r.adv_str }} M</b></div>
         </div>
         <p class="reason">{{ r.view_reason }}</p>
+        <div class="stsub">
+          <div class="sthead">
+            <span class="vlabel {{ r.st_view_css }}" data-id="Jangka pendek: {{ r.st_view }}" data-en="Short-term: {{ r.st_view_en }}">Jangka pendek: {{ r.st_view }}</span>
+          </div>
+          <div class="dgrid">
+            <div><span data-id="Kekuatan relatif 20h" data-en="Relative strength 20d">Kekuatan relatif 20h</span><b>{{ r.rs20_str }}</b></div>
+            <div><span data-id="Dari puncak 20 hari" data-en="From 20-day high">Dari puncak 20 hari</span><b>{{ r.from_hi20_str }}</b></div>
+            <div><span data-id="Batas rugi usulan" data-en="Suggested stop">Batas rugi usulan</span><b>Rp {{ r.stop_price_str }} · {{ r.stop_pct_str }}</b></div>
+          </div>
+          <p class="reason">{{ r.st_reason }}</p>
+        </div>
         {% if r.quality_flag %}
         <p class="caption">⚠️ <span data-id="Ada anomali data untuk saham ini dalam 30 hari terakhir — periksa ulang angka sebelum dipakai."
           data-en="A data anomaly was flagged for this stock in the last 30 days — double-check before relying on it.">Ada anomali data untuk saham ini dalam 30 hari terakhir — periksa ulang angka sebelum dipakai.</span></p>
@@ -327,6 +385,21 @@ function toggleLang(){
   localStorage.setItem('lang', l); applyLang(l);
 }
 applyLang(localStorage.getItem('lang') || 'id');
+
+// ---- opportunity row -> open that stock's evidence card ----
+document.querySelectorAll('.orow[data-goto]').forEach(function(btn){
+  btn.addEventListener('click', function(){
+    var card = document.getElementById(btn.dataset.goto);
+    if(!card) return;
+    card.open = true;
+    var before = window.scrollY;
+    card.scrollIntoView({behavior:'smooth', block:'start'});
+    // Some WebViews no-op smooth scrolling; make sure the tap always lands.
+    setTimeout(function(){
+      if(Math.abs(window.scrollY - before) < 2) card.scrollIntoView({block:'start'});
+    }, 250);
+  });
+});
 
 // ---- chart hover: crosshair + tooltip ----
 (function(){

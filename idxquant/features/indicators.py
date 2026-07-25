@@ -60,6 +60,17 @@ def regime_filter(index_close: pd.Series, window: int, band: float = 0.02) -> pd
     return pd.Series(raw, index=index_close.index).ffill().fillna(0).astype(bool)
 
 
+def relative_strength(close: pd.Series, index_close: pd.Series, window: int) -> pd.Series:
+    """Excess return of a stock over the index across `window` trading days.
+
+    Positive means the stock is beating the market — the signal that survives
+    even a weak overall regime (a leader on the way down is still a leader).
+    The index is reindexed onto the stock's calendar so the two align.
+    """
+    idx = index_close.reindex(close.index).ffill()
+    return close.pct_change(window) - idx.pct_change(window)
+
+
 def drawdown(equity: pd.Series) -> pd.Series:
     return equity / equity.cummax() - 1
 
