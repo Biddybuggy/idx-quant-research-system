@@ -20,6 +20,8 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
+from ..features import indicators as ind
+
 # Score component weights (sum to 1.0). Relative strength dominates by design —
 # it is the piece that actually answers "which names go up when the market is weak".
 _W_RS = 0.45          # relative strength vs the index (20d + 60d)
@@ -49,64 +51,100 @@ def _rsi_score(rsi: float | None) -> float:
     return _clip01((80.0 - rsi) / 10.0)          # 70->1, 80->0
 
 
-def compute(close: pd.Series, index_close: pd.Series, df: pd.DataFrame,
-            rsi: float | None, atr_pct: float, adv_bn: float,
-            min_adv_bn: float, flagged: bool) -> dict:
-    """Tactical readout for one stock. `close`/`df` are that stock's full history;
-    `index_close` the JCI close. Returns raw numbers, a 0-100 score, and a view."""
+def _rsi_score_vec(rsi: pd.Series) -> pd.Series:
+    """Vector form of _rsi_score; NaN scores 0.5 (no opinion), as in the scalar."""
+    below = ((rsi - 30.0) / 20.0).clip(0.0, 1.0)
+    above = ((80.0 - rsi) / 10.0).clip(0.0, 1.0)
+    out = pd.Series(np.where(rsi < 50.0, below, above), index=rsi.index)
+    out[(rsi >= 50.0) & (rsi <= 70.0)] = 1.0
+    return out.where(rsi.notna(), 0.5)
+
+
+def score_history(df: pd.DataFrame, index_close: pd.Series, min_adv_bn: float,
+                  flagged: bool = False) -> pd.DataFrame:
+    """The tactical score for one stock across its WHOLE history, one row per day.
+
+    This is the single source of truth for the score. The dashboard reads the
+    last row; the backtest reads every row. Two implementations of the same
+    formula would drift apart silently — the same reason the backtester and the
+    paper executor share one step().
+
+    Every column is computable from data up to and including that day's close.
+    The engine, not this function, applies the one-day execution lag.
+    """
+    close = df["Close"]
     idx = index_close.reindex(close.index).ffill()
 
-    def _ret(s: pd.Series, n: int) -> float:
-        return float(s.iloc[-1] / s.iloc[-1 - n] - 1) if len(s) > n else np.nan
-
-    rs20 = _ret(close, 20) - _ret(idx, 20)
-    rs60 = _ret(close, 60) - _ret(idx, 60)
+    rs20 = close.pct_change(20) - idx.pct_change(20)
+    rs60 = close.pct_change(60) - idx.pct_change(60)
 
     sma20 = close.rolling(20).mean()
-    above_sma = bool(close.iloc[-1] > sma20.iloc[-1]) if not np.isnan(sma20.iloc[-1]) else False
-    slope_up = bool(len(sma20) > 6 and sma20.iloc[-1] > sma20.iloc[-6])
+    above_sma = (close > sma20).fillna(False)
+    slope_up = (sma20 > sma20.shift(5)).fillna(False)
 
-    hi20 = float(close.rolling(20).max().iloc[-1])
-    from_hi20 = close.iloc[-1] / hi20 - 1 if hi20 > 0 else np.nan
+    hi20 = close.rolling(20).max()
+    from_hi20 = (close / hi20 - 1).where(hi20 > 0)
 
-    tv = df["Close"] * df["Volume"]
-    vol_confirm = float(tv.iloc[-5:].mean() / tv.iloc[-20:].mean()) if len(tv) >= 20 and tv.iloc[-20:].mean() > 0 else np.nan
+    tv = close * df["Volume"]
+    tv20 = tv.rolling(20).mean()
+    vol_confirm = (tv.rolling(5).mean() / tv20).where(tv20 > 0)
 
-    # --- component sub-scores in [0,1] ---
-    rs_sub = (_clip01((rs20 if not np.isnan(rs20) else 0) / 0.10) * 0.6
-              + _clip01((rs60 if not np.isnan(rs60) else 0) / 0.20) * 0.4)
-    trend_sub = 1.0 if (above_sma and slope_up) else 0.5 if above_sma else 0.0
-    breakout_sub = _clip01(1 + (from_hi20 if not np.isnan(from_hi20) else -1) / 0.10)
-    rsi_sub = _rsi_score(rsi)
-    vol_sub = _clip01(((vol_confirm if not np.isnan(vol_confirm) else 0.8) - 0.8) / 0.6)
+    rsi = ind.rsi(close)
+    atr_pct = ind.atr(df) / close
+    adv_bn = ind.avg_daily_value(df) / 1e9
 
-    score = 100.0 * (_W_RS * rs_sub + _W_TREND * trend_sub + _W_BREAKOUT * breakout_sub
-                     + _W_RSI * rsi_sub + _W_VOL * vol_sub)
+    # --- component sub-scores in [0,1] (NaN fallbacks match the scalar path) ---
+    rs_sub = ((rs20.fillna(0.0) / 0.10).clip(0, 1) * 0.6
+              + (rs60.fillna(0.0) / 0.20).clip(0, 1) * 0.4)
+    trend_sub = pd.Series(np.where(above_sma & slope_up, 1.0,
+                                   np.where(above_sma, 0.5, 0.0)), index=close.index)
+    breakout_sub = (1 + from_hi20.fillna(-1.0) / 0.10).clip(0, 1)
+    rsi_sub = _rsi_score_vec(rsi)
+    vol_sub = ((vol_confirm.fillna(0.8) - 0.8) / 0.6).clip(0, 1)
+
+    score = (100.0 * (_W_RS * rs_sub + _W_TREND * trend_sub + _W_BREAKOUT * breakout_sub
+                      + _W_RSI * rsi_sub + _W_VOL * vol_sub)).round(1)
 
     liquid = adv_bn >= min_adv_bn
-    is_opportunity = bool(
-        liquid and above_sma and (rs20 > 0 if not np.isnan(rs20) else False)
-        and (rsi is None or np.isnan(rsi) or rsi < _RSI_MAX)
-        and not flagged and score >= OPPORTUNITY_SCORE)
+    is_opportunity = (liquid & above_sma & (rs20 > 0)
+                      & (rsi.isna() | (rsi < _RSI_MAX))
+                      & (not flagged) & (score >= OPPORTUNITY_SCORE))
 
-    stop_pct = -_STOP_ATR_MULT * atr_pct if not np.isnan(atr_pct) else np.nan
-    stop_price = float(close.iloc[-1]) * (1 + stop_pct) if not np.isnan(stop_pct) else np.nan
+    stop_pct = -_STOP_ATR_MULT * atr_pct
+    return pd.DataFrame({
+        "st_score": score, "rs20": rs20, "rs60": rs60,
+        "st_above_sma": above_sma, "st_slope_up": slope_up,
+        "from_hi20": from_hi20, "vol_confirm": vol_confirm,
+        "rsi": rsi, "atr_pct": atr_pct, "adv_bn": adv_bn, "liquid": liquid,
+        "stop_pct": stop_pct, "stop_price": close * (1 + stop_pct),
+        "is_opportunity": is_opportunity.fillna(False).astype(bool),
+    })
 
-    view, reason = _view(is_opportunity, above_sma, rs20, from_hi20, vol_confirm,
-                         stop_pct, liquid, rsi)
+
+def compute(df: pd.DataFrame, index_close: pd.Series, min_adv_bn: float,
+            flagged: bool = False) -> dict:
+    """Today's tactical readout for one stock — the last row of score_history()
+    plus the plain-language view the dashboard shows."""
+    row = score_history(df, index_close, min_adv_bn, flagged).iloc[-1]
+
+    def val(k):
+        v = row[k]
+        return None if (isinstance(v, float) and np.isnan(v)) else float(v)
+
+    rsi = val("rsi")
+    rs20 = row["rs20"]
+    view, reason = _view(bool(row["is_opportunity"]), bool(row["st_above_sma"]),
+                         rs20, row["from_hi20"], row["vol_confirm"],
+                         row["stop_pct"], bool(row["liquid"]), rsi)
     return {
-        "st_score": round(float(score), 1),
-        "rs20": None if np.isnan(rs20) else float(rs20),
-        "rs60": None if np.isnan(rs60) else float(rs60),
-        "st_above_sma": above_sma,
-        "st_slope_up": slope_up,
-        "from_hi20": None if np.isnan(from_hi20) else float(from_hi20),
-        "vol_confirm": None if np.isnan(vol_confirm) else float(vol_confirm),
-        "stop_pct": None if np.isnan(stop_pct) else float(stop_pct),
-        "stop_price": None if np.isnan(stop_price) else float(stop_price),
-        "is_opportunity": is_opportunity,
-        "st_view": view,
-        "st_reason": reason,
+        "st_score": float(row["st_score"]),
+        "rs20": val("rs20"), "rs60": val("rs60"),
+        "st_above_sma": bool(row["st_above_sma"]),
+        "st_slope_up": bool(row["st_slope_up"]),
+        "from_hi20": val("from_hi20"), "vol_confirm": val("vol_confirm"),
+        "stop_pct": val("stop_pct"), "stop_price": val("stop_price"),
+        "is_opportunity": bool(row["is_opportunity"]),
+        "st_view": view, "st_reason": reason,
     }
 
 

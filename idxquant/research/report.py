@@ -116,11 +116,8 @@ def stock_research(prices: dict[str, pd.DataFrame], index_close: pd.Series,
             "quality_flag": t in quality_flags,
         }
         # Short-term / tactical layer — leaders in a weak market, regime-agnostic.
-        card.update(tactical.compute(
-            close, index_close, df,
-            rsi=None if np.isnan(rsi) else rsi, atr_pct=atr_pct,
-            adv_bn=card["adv_bn"], min_adv_bn=cfg.min_adv_idr / 1e9,
-            flagged=t in quality_flags))
+        card.update(tactical.compute(df, index_close, cfg.min_adv_idr / 1e9,
+                                     flagged=t in quality_flags))
         out.append(card)
     out.sort(key=lambda r: r["rank"] if r["rank"] is not None else 999)
     for r in out:

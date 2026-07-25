@@ -33,13 +33,7 @@ def _ohlcv(close: pd.Series, vol: float = 1e7) -> pd.DataFrame:
 
 def _card(close: pd.Series, index_close: pd.Series, min_adv_bn: float,
           flagged: bool = False, vol: float = 1e7) -> dict:
-    df = _ohlcv(close, vol)
-    c = float(close.iloc[-1])
-    rsi = float(ind.rsi(close).iloc[-1])
-    atr_pct = float(ind.atr(df).iloc[-1] / c)
-    adv_bn = float(ind.avg_daily_value(df).iloc[-1]) / 1e9
-    return tactical.compute(close, index_close, df, rsi=rsi, atr_pct=atr_pct,
-                            adv_bn=adv_bn, min_adv_bn=min_adv_bn, flagged=flagged)
+    return tactical.compute(_ohlcv(close, vol), index_close, min_adv_bn, flagged)
 
 
 def main():
