@@ -3,16 +3,35 @@ from __future__ import annotations
 
 from ..config import Config
 from .momentum import CrossSectionalMomentum
+from .regime_switch import RegimeSwitch
+from .reversal import RiskOffReversal
 from .sma_crossover import SmaCrossover
 from .tactical_rs import TacticalRelativeStrength
+
+
+def _momentum(s, cfg) -> CrossSectionalMomentum:
+    return CrossSectionalMomentum(int(s["lookback"]), int(s["skip"]),
+                                  int(s["top_n"]), cfg.regime_sma)
+
+
+def _reversal(s, cfg) -> RiskOffReversal:
+    return RiskOffReversal(
+        lookback=int(s.get("rev_lookback", 60)),
+        top_n=int(s.get("rev_top_n", 5)),
+        rebalance_days=int(s.get("rev_rebalance_days", 21)),
+        regime_sma=cfg.regime_sma,
+        min_adv_idr=cfg.min_adv_idr)
 
 
 def make_strategy(cfg: Config, **overrides):
     s = {**cfg.strategy, **{k: v for k, v in overrides.items() if v is not None}}
     name = s["name"]
     if name == "momentum":
-        return CrossSectionalMomentum(int(s["lookback"]), int(s["skip"]),
-                                      int(s["top_n"]), cfg.regime_sma)
+        return _momentum(s, cfg)
+    if name == "reversal":
+        return _reversal(s, cfg)
+    if name == "regime_switch":
+        return RegimeSwitch(_momentum(s, cfg), _reversal(s, cfg), cfg.regime_sma)
     if name == "sma_crossover":
         return SmaCrossover(int(s["fast"]), int(s["slow"]), cfg.regime_sma)
     if name == "tactical_rs":

@@ -110,6 +110,18 @@ def cmd_robustness(cfg):
                 rows.append({"lookback": lb, "top_n": top_n, "cagr": summary["cagr"],
                              "sharpe": summary["sharpe"], "max_dd": summary["max_drawdown"],
                              "trades": summary["n_trades"]})
+    elif cfg.strategy["name"] in ("reversal", "regime_switch"):
+        # Sweep the reversal leg's own knobs. Sweeping fast/slow here would print
+        # a grid of identical rows, which reads as a very stable strategy and is
+        # in fact a strategy ignoring every parameter in the table.
+        for lb in [40, 60, 90, 120]:
+            for top_n in [3, 5, 8]:
+                summary, _ = cmd_backtest(load_config(), quiet=True,
+                                          rev_lookback=lb, rev_top_n=top_n)
+                rows.append({"rev_lookback": lb, "rev_top_n": top_n,
+                             "cagr": summary["cagr"], "sharpe": summary["sharpe"],
+                             "max_dd": summary["max_drawdown"],
+                             "trades": summary["n_trades"]})
     else:
         for f in [10, 20, 30, 50]:
             for s in [60, 100, 150, 200]:

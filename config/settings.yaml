@@ -40,11 +40,19 @@ risk:
   halt_cooloff_days: 20        # trading days flat before re-entry allowed
 
 strategy:
-  name: momentum            # active strategy: momentum | sma_crossover
+  # active strategy: momentum | reversal | regime_switch | sma_crossover
+  # `reversal` and `regime_switch` are validated but NOT default — see the
+  # evidence and the survivorship caveat in idxquant/strategies/reversal.py
+  # before switching the live paper portfolio.
+  name: momentum
   # cross-sectional momentum params
   lookback: 252             # ~12 months
   skip: 21                  # ~1 month (short-term reversal skip)
   top_n: 3
+  # risk-off reversal params (centre of the tested surface, not its best cell)
+  rev_lookback: 60
+  rev_top_n: 5
+  rev_rebalance_days: 21
   # sma_crossover params (kept for comparison runs)
   fast: 20
   slow: 100

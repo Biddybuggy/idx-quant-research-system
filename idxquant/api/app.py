@@ -26,6 +26,7 @@ from fastapi.templating import Jinja2Templates
 from ..config import ROOT, load_config
 from ..data import db
 from ..research.report import market_overview, stock_research
+from ..research.riskoff import screen as riskoff_screen
 from .chart import equity_chart_svg
 
 TEMPLATES = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
@@ -285,6 +286,9 @@ def build_dashboard_context() -> dict | None:
     held = {p["ticker"] for p in positions}
     research = stock_research(prices, index_close, cfg, held, flagged)
     market = market_overview(index_close, cfg)
+    # None while the market is risk-on — the screen is only validated in risk-off,
+    # so the panel is absent rather than empty for most of the year.
+    riskoff = riskoff_screen(prices, index_close, cfg)
 
     payload = _signal_payload() or {"signals": [], "regime": "?", "as_of_close": "?"}
     active = [s for s in payload["signals"] if s["action"] != "NO_POSITION"]
@@ -304,6 +308,13 @@ def build_dashboard_context() -> dict | None:
     elif positions:
         status_id = f"Sistem memegang {len(positions)} saham (latihan)."
         status_en = f"Holding {len(positions)} stocks (practice)."
+    elif risk_off and riskoff:
+        # Don't say "waiting in cash" full stop when there IS a screen below; the
+        # reader would stop reading at the first line and never reach it.
+        status_id = ("Pasar sedang lesu — portofolio latihan menunggu di posisi tunai, "
+                     "dan layar pasar lesu di bawah menunjukkan yang sedang diamati.")
+        status_en = ("Market regime is weak — the practice portfolio is waiting in cash, "
+                     "and the weak-market screen below shows what is being watched.")
     elif risk_off:
         status_id = "Pasar sedang lesu — sistem menunggu dengan aman di posisi tunai."
         status_en = "Market regime is weak — safely waiting in cash."
@@ -322,7 +333,7 @@ def build_dashboard_context() -> dict | None:
         "active_signals": active, "n_waiting": n_waiting,
         "recent_trades": recent.to_dict("records"),
         "halted": halted,
-        "research": research, "market": market,
+        "research": research, "market": market, "riskoff": riskoff,
     }
 
 
