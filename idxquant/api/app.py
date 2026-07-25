@@ -203,10 +203,10 @@ def icon512():
 
 # ---------- Dashboard ----------
 
-ACTION_ID = {"ENTER_LONG": ("Beli (latihan)", "buy"),
-             "HOLD_LONG": ("Tahan", "hold"),
-             "EXIT": ("Jual (latihan)", "sell"),
-             "NO_POSITION": ("Menunggu", "wait")}
+ACTION_ID = {"ENTER_LONG": ("Beli (latihan)", "Buy (practice)", "buy"),
+             "HOLD_LONG": ("Tahan", "Hold", "hold"),
+             "EXIT": ("Jual (latihan)", "Sell (practice)", "sell"),
+             "NO_POSITION": ("Menunggu", "Waiting", "wait")}
 
 
 _ID_MONTHS = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun",
@@ -294,7 +294,7 @@ def build_dashboard_context() -> dict | None:
     active = [s for s in payload["signals"] if s["action"] != "NO_POSITION"]
     n_waiting = len(payload["signals"]) - len(active)
     for s in active:
-        s["label_id"], s["css"] = ACTION_ID[s["action"]]
+        s["label_id"], s["label_en"], s["css"] = ACTION_ID[s["action"]]
 
     equity_now = float(eq.equity.iloc[-1])
     ret_start = equity_now / float(eq.equity.iloc[0]) - 1

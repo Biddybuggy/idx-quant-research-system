@@ -161,7 +161,11 @@ details[open] .chev{transform:rotate(90deg)}
   .main{display:flex;flex-direction:column;gap:16px;grid-column:1;min-width:0}
   .toprow{display:grid;grid-template-columns:repeat(auto-fit,minmax(258px,1fr));
           gap:16px;align-items:stretch}
-  .side-rail{display:flex;flex-direction:column;gap:16px;grid-column:2;min-width:0}
+  /* Sticky so the shorter rail stays put as the reader scrolls the longer
+     .main column, instead of ending early and leaving a blank stretch beside
+     a long research list — the .main column becomes a peninsula otherwise. */
+  .side-rail{display:flex;flex-direction:column;gap:16px;grid-column:2;min-width:0;
+    position:sticky;top:24px}
 
   .card--hero{display:flex;flex-direction:column;justify-content:space-between}
   .status{font-size:16px;max-width:46ch}
@@ -171,6 +175,10 @@ details[open] .chev{transform:rotate(90deg)}
   .deltas{font-size:14px}
   .card--chart .eqchart{height:200px}
   .card--research .mkt{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px 16px}
+  /* Caps the ranking list so a long universe can't stretch .main far past the
+     shorter .side-rail column — scrolls internally instead of leaving a lone
+     peninsula of cards below an empty side rail. */
+  .stock-list{max-height:460px;overflow-y:auto}
   details.stock summary{gap:12px;padding:12px 0}
   .rank{flex-basis:28px;height:28px}
   .tk{font-size:15px}
@@ -283,6 +291,7 @@ details[open] .chev{transform:rotate(90deg)}
       <span><span data-id="1 bulan" data-en="1 month">1 bulan</span> <b>{{ market.chg_1m_str }}</b></span>
       <span><span data-id="vs tren {{ market.sma_window }} hari" data-en="vs {{ market.sma_window }}-day trend">vs tren {{ market.sma_window }} hari</span> <b>{{ market.vs_sma_str }}</b></span>
     </div>
+    <div class="stock-list">
     {% for r in research %}
     <details class="stock" id="stock-{{ r.name }}">
       <summary>
@@ -321,6 +330,7 @@ details[open] .chev{transform:rotate(90deg)}
       </div>
     </details>
     {% endfor %}
+    </div>
     <p class="caption" data-id="Ini data dan pandangan sistem — bukan rekomendasi. Keputusan investasi sepenuhnya di tangan Anda."
        data-en="This is data plus the system's view — not a recommendation. Investment decisions are entirely yours.">
       Ini data dan pandangan sistem — bukan rekomendasi. Keputusan investasi sepenuhnya di tangan Anda.</p>
@@ -354,7 +364,7 @@ details[open] .chev{transform:rotate(90deg)}
         <div class="row" style="display:block">
           <div style="display:flex;justify-content:space-between;align-items:center">
             <span class="tk">{{ s.ticker.replace('.JK','') }}</span>
-            <span class="badge {{ s.css }}"><span class="dot"></span>{{ s.label_id }}</span>
+            <span class="badge {{ s.css }}"><span class="dot"></span><span data-id="{{ s.label_id }}" data-en="{{ s.label_en }}">{{ s.label_id }}</span></span>
           </div>
           <p class="reason">{{ s.reasoning }}</p>
         </div>
