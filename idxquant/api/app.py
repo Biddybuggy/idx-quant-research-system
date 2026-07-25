@@ -26,7 +26,6 @@ from fastapi.templating import Jinja2Templates
 from ..config import ROOT, load_config
 from ..data import db
 from ..research.report import market_overview, stock_research
-from ..research import tactical
 from .chart import equity_chart_svg
 
 TEMPLATES = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
@@ -285,7 +284,6 @@ def build_dashboard_context() -> dict | None:
 
     held = {p["ticker"] for p in positions}
     research = stock_research(prices, index_close, cfg, held, flagged)
-    opportunities = tactical.opportunities(research)
     market = market_overview(index_close, cfg)
 
     payload = _signal_payload() or {"signals": [], "regime": "?", "as_of_close": "?"}
@@ -325,7 +323,6 @@ def build_dashboard_context() -> dict | None:
         "recent_trades": recent.to_dict("records"),
         "halted": halted,
         "research": research, "market": market,
-        "opportunities": opportunities,
     }
 
 

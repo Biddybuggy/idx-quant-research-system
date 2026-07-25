@@ -115,7 +115,8 @@ def stock_research(prices: dict[str, pd.DataFrame], index_close: pd.Series,
             "view": view, "view_reason": reason,
             "quality_flag": t in quality_flags,
         }
-        # Short-term / tactical layer — leaders in a weak market, regime-agnostic.
+        # Short-term movement, descriptive only — the screen this used to drive
+        # was backtested and underperformed buy-and-hold (see tactical.py).
         card.update(tactical.compute(df, index_close, cfg.min_adv_idr / 1e9,
                                      flagged=t in quality_flags))
         out.append(card)

@@ -1,17 +1,26 @@
-"""Short-term / tactical opportunity layer — leaders in a weak market.
+"""Short-term relative strength — DESCRIPTIVE ONLY. Tested, and it does not work.
 
-The long-term momentum view is gated by the JCI regime filter: when the index
-is below its 200-day trend, every long-term signal is suppressed and the whole
-watchlist reads "menunggu regime". But traders (like the experienced reader this
-is built for) still find names that rise while the market sags. That edge is
-*relative strength* — a stock beating the index — plus a clean short-term
-structure (above its 20-day average, near a 20-day high, not blown-off).
+This started as an opportunity screen: find names beating the index while the
+market sags, on the theory that relative strength persists. It was backtested on
+2010-2026 (21 names, 18 risk-off episodes) and the theory is wrong for this
+universe. Annualised return during risk-off periods:
 
-This module scores that setup PER STOCK, independent of the market regime, from
-daily closes already in the DB. It is deliberately honest: these are swing /
-short-term setups on *daily* data — not intraday day-trade timing, and not a
-validated profitable edge. Every opportunity ships with a suggested stop so the
-reader sizes the risk. The reader decides; we show the evidence.
+    tactical daily   -20.7% gross / -30.6% net
+    JCI buy & hold    -6.4%
+    BBCA buy & hold   +7.7%
+
+It loses to holding the index in exactly the weak markets it was built for, and
+it is negative GROSS of costs — so this is not friction a slower cadence fixes.
+The cross-sectional rank IC of 20-day relative strength against forward 20-day
+excess return is -0.047 in risk-off periods: these names mean-revert.
+momentum.py already skips the most recent month to dodge short-term reversal;
+this bought exactly that window.
+
+So the numbers here are now presented as DESCRIPTION of what a stock has done,
+never as a suggestion of what to do next. No score, no ranking, no entry, no
+stop — those all imply a recommendation the evidence does not support. The
+scoring machinery below is retained only so the finding stays reproducible via
+idxquant/strategies/tactical_rs.py; it must not drive anything user-facing.
 
 Text is Bahasa Indonesia first (the primary audience).
 """
@@ -133,88 +142,34 @@ def compute(df: pd.DataFrame, index_close: pd.Series, min_adv_bn: float,
 
     rsi = val("rsi")
     rs20 = row["rs20"]
-    view, reason = _view(bool(row["is_opportunity"]), bool(row["st_above_sma"]),
-                         rs20, row["from_hi20"], row["vol_confirm"],
-                         row["stop_pct"], bool(row["liquid"]), rsi)
     return {
-        "st_score": float(row["st_score"]),
         "rs20": val("rs20"), "rs60": val("rs60"),
         "st_above_sma": bool(row["st_above_sma"]),
-        "st_slope_up": bool(row["st_slope_up"]),
-        "from_hi20": val("from_hi20"), "vol_confirm": val("vol_confirm"),
-        "stop_pct": val("stop_pct"), "stop_price": val("stop_price"),
-        "is_opportunity": bool(row["is_opportunity"]),
-        "st_view": view, "st_reason": reason,
+        "from_hi20": val("from_hi20"),
+        "st_note": _note(rs20, row["from_hi20"], bool(row["st_above_sma"])),
     }
 
 
-def _view(is_opp: bool, above_sma: bool, rs20: float, from_hi20: float,
-          vol_confirm: float, stop_pct: float, liquid: bool,
-          rsi: float | None) -> tuple[str, str]:
-    """(short-term view label, one-sentence reason) — ID-first."""
-    rs_txt = f"{rs20:+.1%} vs IHSG" if not np.isnan(rs20) else "data kurang"
-    stop_txt = (f" Batas rugi usulan ~{stop_pct:+.1%} (1,5×ATR)." if not np.isnan(stop_pct) else "")
-    if is_opp:
-        hi_txt = ("menembus/di dekat puncak 20 hari"
-                  if not np.isnan(from_hi20) and from_hi20 > -0.02 else "di atas rata-rata 20 hari")
-        vol_txt = (" dengan volume menguat" if not np.isnan(vol_confirm) and vol_confirm > 1.05 else "")
-        return ("peluang jangka pendek",
-                f"Lebih kuat dari pasar ({rs_txt}), {hi_txt}{vol_txt} — setup jangka "
-                f"pendek meski IHSG lemah.{stop_txt}")
-    if not liquid:
-        return ("likuiditas tipis",
-                "Nilai transaksi harian di bawah ambang — sulit masuk/keluar dengan aman untuk trading jangka pendek.")
-    if rsi is not None and not np.isnan(rsi) and rsi >= _RSI_MAX and above_sma:
-        return ("terlalu jauh",
-                f"Kuat ({rs_txt}) tetapi RSI {rsi:.0f} — sudah naik banyak; tunggu koreksi/konsolidasi sebelum masuk.")
-    if above_sma and not np.isnan(rs20) and rs20 > 0:
-        return ("pantau",
-                f"Mulai memimpin pasar ({rs_txt}) dan di atas rata-rata 20 hari, tetapi setup belum matang — pantau.")
-    return ("lemah jangka pendek",
-            f"Tren jangka pendek belum mendukung ({rs_txt}); bukan kandidat trading saat ini.")
+def _note(rs20: float, from_hi20: float, above_sma: bool) -> str:
+    """One descriptive sentence — what the stock DID, never what to do.
 
-
-_ST_VIEW_META = {
-    # view -> (english label, css class reused from the long-term views)
-    "peluang jangka pendek": ("short-term opportunity", "buy"),
-    "pantau": ("watch", "wait"),
-    "terlalu jauh": ("over-extended", "wait"),
-    "likuiditas tipis": ("thin liquidity", "muted"),
-    "lemah jangka pendek": ("short-term weak", "weak"),
-    "data kurang": ("insufficient data", "muted"),
-}
+    No entry, no stop, no "opportunity": the screen those implied was tested and
+    underperformed buy-and-hold in weak markets (see the module docstring).
+    """
+    if np.isnan(rs20):
+        return "Data belum cukup untuk mengukur pergerakan jangka pendek."
+    vs = "lebih kuat dari" if rs20 > 0 else "lebih lemah dari"
+    where = ("di atas" if above_sma else "di bawah")
+    hi = ("" if np.isnan(from_hi20)
+          else f" dan {abs(from_hi20) * 100:.0f}% dari puncak 20 harinya")
+    return (f"Dalam 20 hari terakhir bergerak {vs} IHSG ({rs20:+.1%}), "
+            f"{where} rata-rata 20 hari{hi}. Ini catatan pergerakan, bukan sinyal beli.")
 
 
 def add_display_fields(r: dict) -> None:
-    """Formatted strings for the tactical fields on a research card."""
+    """Formatted strings for the descriptive short-term fields."""
     def pct(v, dec=1):
         return "–" if v is None or (isinstance(v, float) and np.isnan(v)) else f"{v * 100:+.{dec}f}%"
     r["rs20_str"] = pct(r["rs20"])
     r["rs60_str"] = pct(r["rs60"])
     r["from_hi20_str"] = pct(r["from_hi20"])
-    r["stop_pct_str"] = pct(r["stop_pct"])
-    r["stop_price_str"] = ("–" if r["stop_price"] is None
-                           else f"{r['stop_price']:,.0f}".replace(",", "."))
-    r["vol_confirm_str"] = ("–" if r["vol_confirm"] is None else f"{r['vol_confirm']:.2f}×")
-    r["st_view_en"], r["st_view_css"] = _ST_VIEW_META[r["st_view"]]
-
-
-def opportunities(cards: list[dict], n: int = 5) -> list[dict]:
-    """Today's short-term opportunities: qualifying names, strongest first."""
-    picks = [c for c in cards if c.get("is_opportunity")]
-    picks.sort(key=lambda c: c["st_score"], reverse=True)
-    return picks[:n]
-
-
-def top_relative_strength_line(cards: list[dict], n: int = 3) -> str:
-    """One Telegram line naming today's short-term opportunities.
-
-    Deliberately reuses `opportunities()` so the message and the dashboard panel
-    can never disagree — a name in the message is always findable on the site.
-    Silent when nothing qualifies, matching the panel's empty state.
-    """
-    picks = opportunities(cards, n)
-    if not picks:
-        return ""
-    parts = [f"{c['name']} {c['rs20'] * 100:+.0f}% vs IHSG" for c in picks]
-    return "💪 Peluang jangka pendek: " + " · ".join(parts)
