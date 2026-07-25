@@ -15,6 +15,7 @@ import json
 import os
 import sqlite3
 from contextlib import asynccontextmanager
+from datetime import timedelta
 from pathlib import Path
 
 import pandas as pd
@@ -208,6 +209,58 @@ ACTION_ID = {"ENTER_LONG": ("Beli (latihan)", "buy"),
              "NO_POSITION": ("Menunggu", "wait")}
 
 
+_ID_MONTHS = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun",
+              "Jul", "Agu", "Sep", "Okt", "Nov", "Des"]
+_EN_MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
+              "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+
+# Trading days behind before the numbers are called stale. One day of slack is
+# normal: today's close only lands after the daily job runs (~17:45 WIB), so a
+# reader opening the page mid-morning is correctly one close behind.
+STALE_AFTER_TRADING_DAYS = 2
+
+
+def _freshness(last_date: pd.Timestamp, today=None) -> dict:
+    """Always say what the reader is looking at — every day, not just bad ones.
+
+    Staleness is counted in TRADING days, never calendar days: on a Saturday,
+    Friday's close IS current, and a calendar-day counter would cry stale over
+    a perfectly healthy weekend. That distinction is what lets the threshold be
+    tight enough to catch a broken pipeline within a day of trading.
+    """
+    last = last_date.date()
+    today = today or pd.Timestamp.now().date()   # injectable so the calendar cases are testable
+    # Business days strictly after the last close, up to and including today.
+    behind = len(pd.bdate_range(last + timedelta(days=1), today))
+    d_id = f"{last.day} {_ID_MONTHS[last.month - 1]}"
+    d_en = f"{last.day} {_EN_MONTHS[last.month - 1]}"
+
+    if behind >= STALE_AFTER_TRADING_DAYS:
+        # Deliberately names both causes. We do not track IDX holidays, so a
+        # holiday and a broken pipeline look identical from here — claiming
+        # "broken" would be a guess, and either way the numbers are old.
+        return {"stale": True, "as_of": str(last), "behind_days": behind,
+                "fresh_id": f"Belum ada data baru sejak penutupan {d_id} "
+                            f"({behind} hari bursa). Mungkin bursa libur, atau "
+                            f"pembaruan tersendat — angka di bawah mungkin lama.",
+                "fresh_en": f"No new data since the {d_en} close ({behind} trading days). "
+                            f"The market may be on holiday, or the update may be "
+                            f"stuck — numbers below may be old."}
+    if today.weekday() >= 5:
+        msg_id = f"Bursa tutup akhir pekan — angka ini penutupan {d_id}."
+        msg_en = f"Market closed for the weekend — these are the {d_en} close."
+    elif behind == 0:
+        msg_id = f"Terbaru — penutupan {d_id}."
+        msg_en = f"Up to date — the {d_en} close."
+    else:
+        msg_id = (f"Penutupan terakhir {d_id}. Angka hari ini masuk "
+                  f"setelah bursa tutup (±17.45 WIB).")
+        msg_en = (f"Latest close {d_en}. Today's numbers arrive "
+                  f"after the market closes (~17:45 WIB).")
+    return {"stale": False, "as_of": str(last), "behind_days": behind,
+            "fresh_id": msg_id, "fresh_en": msg_en}
+
+
 def build_dashboard_context() -> dict | None:
     """All data the dashboard template needs. Shared by the live server and
     scripts/build_static.py (GitHub Pages) so both render the same page.
@@ -260,18 +313,17 @@ def build_dashboard_context() -> dict | None:
         status_id = "Sistem siap — belum ada sinyal beli hari ini."
         status_en = "Ready — no buy signal today."
 
-    stale_days = (pd.Timestamp.now() - eq.date.iloc[-1]).days
     return {
+        **_freshness(eq.date.iloc[-1]),
         "status_id": status_id, "status_en": status_en,
         "equity_str": f"{equity_now:,.0f}".replace(",", "."),
         "ret_start": ret_start, "ret_day": ret_day,
-        "as_of": str(eq.date.iloc[-1].date()),
         "chart_svg": equity_chart_svg(eq, meta.get("backfill_until")),
         "backfill_until": meta.get("backfill_until"),
         "positions": positions,
         "active_signals": active, "n_waiting": n_waiting,
         "recent_trades": recent.to_dict("records"),
-        "halted": halted, "stale": stale_days > 5,
+        "halted": halted,
         "research": research, "market": market,
         "opportunities": opportunities,
     }

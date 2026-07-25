@@ -40,6 +40,8 @@ header h1{font-size:17px;font-weight:650}
 .banner{border-radius:12px;padding:10px 14px;font-size:13.5px;display:flex;gap:8px;align-items:center}
 .banner.warn{background:color-mix(in srgb,var(--warn) 14%,var(--surface));}
 .banner.crit{background:color-mix(in srgb,var(--crit) 12%,var(--surface));}
+.banner.info{background:var(--surface);border:1px solid var(--grid);color:var(--muted);
+  font-size:12.5px}
 .status{font-size:15px;line-height:1.45;color:var(--ink);margin-bottom:14px}
 .label{font-size:12.5px;color:var(--ink-2);margin-bottom:2px}
 .hero{font-size:40px;font-weight:650;letter-spacing:-.5px;line-height:1.1}
@@ -191,10 +193,9 @@ details[open] .chev{transform:rotate(90deg)}
     <button class="lang" onclick="toggleLang()" id="langbtn">EN</button>
   </header>
 
-  {% if stale %}
-  <div class="banner warn">⚠️ <span data-id="Data belum diperbarui beberapa hari. Angka di bawah mungkin lama."
-    data-en="Data hasn't updated for a few days. Numbers below may be old.">Data belum diperbarui beberapa hari. Angka di bawah mungkin lama.</span></div>
-  {% endif %}
+  {# Always exactly one freshness line, so the page says what it is every day. #}
+  <div class="banner {{ 'warn' if stale else 'info' }}">{{ '⚠️' if stale else '🕒' }}
+    <span data-id="{{ fresh_id }}" data-en="{{ fresh_en }}">{{ fresh_id }}</span></div>
   {% if halted %}
   <div class="banner crit">⛔ <span data-id="Pelindung risiko aktif: sistem berhenti sementara dan menjual semua posisi latihan."
     data-en="Risk protection active: the system paused and sold all practice positions.">Pelindung risiko aktif: sistem berhenti sementara dan menjual semua posisi latihan.</span></div>
