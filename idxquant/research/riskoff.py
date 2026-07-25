@@ -32,11 +32,11 @@ from ..strategies.reversal import RiskOffReversal
 # Backtested record, 2010-01..2026-07, real engine and costs. Keep in sync with
 # the docstring of strategies/reversal.py — that file is the source of truth.
 RECORD = {
-    "riskoff_ann": 0.172,        # strategy, annualised over risk-off days
+    "riskoff_ann": 0.179,        # strategy, annualised over risk-off days
     "riskoff_ann_jci": -0.060,   # JCI buy & hold, same days
     "episodes": 12,
     "episodes_beat_jci": 9,
-    "oos_riskoff_ann": 0.196,    # out-of-sample 2019-2026
+    "oos_riskoff_ann": 0.211,    # out-of-sample 2019-2026
 }
 
 

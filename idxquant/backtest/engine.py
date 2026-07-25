@@ -71,14 +71,43 @@ class BacktestResult:
         self.daily_returns = self.equity.pct_change().fillna(0.0)
 
 
+def _mark(price, pos: "Position") -> float:
+    """Price to value a held position at. Falls back to the entry fill when the
+    close is missing — the last price we actually transacted at, and the only
+    fallback that cannot invent a profit or a total loss."""
+    return float(price) if price is not None and not pd.isna(price) else pos.entry_price
+
+
 def _lots(value_idr: float, price: float, lot_size: int) -> int:
     lots = math.floor(value_idr / (price * lot_size))
     return max(lots, 0) * lot_size
 
 
+# A position may be marked on a carried-forward price for at most this many
+# trading days. Long enough to bridge a vendor gap, short enough that a name
+# which genuinely stops printing cannot be valued off a stale price forever.
+MAX_STALE_MARK_DAYS = 5
+
+
 def build_frames(prices: dict[str, pd.DataFrame], signals: pd.DataFrame):
     """Aligned frames for simulation. THE no-lookahead lag is applied here:
-    today's orders come from yesterday's signal; liquidity uses lagged ADV."""
+    today's orders come from yesterday's signal; liquidity uses lagged ADV.
+
+    Two price frames, and the difference matters:
+      - `opens` is left with its gaps. You cannot fill an order at a price that
+        never printed, so a NaN open correctly blocks trading that name that day.
+      - `closes` is forward-filled (bounded) because it is used to MARK existing
+        positions. A missing close means "no print", not "worth nothing".
+
+    Forward-filling the mark is not cosmetic. Before it, `step()` skipped
+    positions whose close was NaN, valuing them at zero: on 2019-06-19 ten of
+    the 21 names had no close in the vendor data, which fabricated a 39%
+    one-day drawdown, tripped the 20% drawdown halt, liquidated the book at the
+    next open and blocked re-entry for 20 trading days. Equity was back to
+    normal the following day — the loss was never real, but the forced exit was.
+    One bad day in 4,061 was enough to change every strategy's measured record,
+    and the same gap in live paper trading would fire the same false liquidation.
+    """
     tickers = list(signals.columns)
     dates = signals.index
     target = signals.shift(1).fillna(0).astype(int)
@@ -86,7 +115,8 @@ def build_frames(prices: dict[str, pd.DataFrame], signals: pd.DataFrame):
         {t: ind.avg_daily_value(prices[t]).shift(1).reindex(dates) for t in tickers}
     )
     opens = pd.DataFrame({t: prices[t]["Open"].reindex(dates) for t in tickers})
-    closes = pd.DataFrame({t: prices[t]["Close"].reindex(dates) for t in tickers})
+    closes = pd.DataFrame({t: prices[t]["Close"].reindex(dates) for t in tickers}) \
+        .ffill(limit=MAX_STALE_MARK_DAYS)
     return target, opens, closes, adv
 
 
@@ -152,9 +182,15 @@ def step(
                 state.positions[t] = Position(shares, date, fill, commission)
 
     # --- 3. Mark to market at today's close ---
-    stock_value = sum(pos.shares * row_close[t]
-                      for t, pos in state.positions.items()
-                      if not pd.isna(row_close.get(t)))
+    # A position with no usable close is marked at its own entry price, never
+    # dropped. Dropping it is arithmetically identical to declaring the holding
+    # worthless, which manufactures a drawdown out of a data gap and then lets
+    # the halt below act on it. build_frames already bridges short vendor gaps;
+    # this is the floor under everything it could not bridge, and it matters
+    # most in live paper trading, where one failed ingest would otherwise
+    # liquidate the book.
+    stock_value = sum(pos.shares * _mark(row_close.get(t), pos)
+                      for t, pos in state.positions.items())
     equity = state.cash + stock_value
     exposure = stock_value / equity if equity > 0 else 0.0
     state.prev_equity = equity
@@ -178,9 +214,7 @@ def mark_open_trades(state: PortfolioState, row_close: pd.Series,
     """Snapshot still-open positions as open trades at the given close."""
     out = []
     for t, pos in state.positions.items():
-        px = row_close.get(t)
-        if px is None or pd.isna(px):
-            continue
+        px = _mark(row_close.get(t), pos)   # same fallback as the equity mark
         pnl = pos.shares * px - pos.shares * pos.entry_price - pos.entry_costs
         basis = pos.shares * pos.entry_price + pos.entry_costs
         out.append({

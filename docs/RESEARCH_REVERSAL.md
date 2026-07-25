@@ -46,7 +46,7 @@ Risk-off annualised return:
 
 | Strategy | turnover/yr | 2010–18 | 2019–26 | full |
 |---|---|---|---|---|
-| **−rs60, top 5, monthly, risk-off only** | 6.5× | **+18.2%** | **+19.6%** | **+17.2%** |
+| **−rs60, top 5, monthly, risk-off only** | 6.5× | **+18.2%** | **+21.1%** | **+17.9%** |
 | −rs60, top 5, monthly, always on | 11.2× | −4.4% | +27.9% | +8.4% |
 | −rsi14, top 5, monthly | 15.7× | −0.5% | +15.0% | +6.6% |
 | −rs5, top 5, **weekly** | 72.2× | −5.7% | −23.6% | −14.9% |
@@ -93,18 +93,70 @@ concentrates almost entirely in the four names most exposed to the bias. That ma
 this promising and far better evidenced than what it replaces; it does not make it
 proven.
 
+## Addendum, same day: a bug, and the live strategy switch
+
+**A mark-to-market bug.** While testing an always-invested composite, an
+"own every liquid name" portfolio showed a −51.9% loss over Oct 2018 → Jun 2019,
+a window in which JCI rose +6.6%. That is not a strategy result, it is a defect.
+
+Cause: on **2019-06-19**, ten of the 21 names had no close in the vendor data —
+the only such day in 4,061. `step()` marked to market by summing positions whose
+close was present, i.e. valuing the rest at **zero**. Equity fell 39% for one
+day, tripped the 20% drawdown halt, liquidated the book at the next open and
+blocked re-entry for 20 trading days. Equity was normal again the next day: the
+loss never happened, the forced liquidation did.
+
+Fixed in `build_frames` (bounded forward-fill of the marking frame only — never
+of `opens`, since you cannot fill an order at a price that never printed) plus an
+entry-price floor inside `step()` for gaps too long to bridge. Pinned by
+`tests/test_missing_price_mark.py`. **The reversal results above were unaffected**
+— the strategy was in cash on that day. Momentum was affected, by ~5pp of drawdown.
+
+**Research approximations are not the shipped strategy.** A second correction:
+`bt_composite.py` rebalanced momentum on a fixed 21-day grid, where the real
+`CrossSectionalMomentum` uses calendar month-ends plus an absolute-momentum gate.
+That gap alone moved max drawdown from −38.1% to −44.7% and flipped the
+composite's 2×-cost verdict from fail to pass. Anything quoted in a docstring,
+in this document, or on the dashboard now comes from
+`scripts/research/bt_live_config.py`, which runs what `make_strategy()` returns.
+
+**The live strategy changed** from `momentum` to `regime_switch` (momentum top 8
+when risk-on, reversal top 5 when risk-off), measured as shipped:
+
+| full 2010–2026 | CAGR | Sharpe | maxDD | risk-off |
+|---|---|---|---|---|
+| momentum *(was live)* | +2.2% | 0.22 | −41.5% | −8.5% |
+| reversal only | +7.8% | 0.55 | **−29.1%** | **+17.9%** |
+| **regime_switch** *(now live)* | **+13.0%** | **0.66** | −44.7% | +6.4% |
+| JCI buy & hold | +5.2% | 0.39 | −41.5% | −6.0% |
+| BBCA buy & hold | +13.8% | 0.63 | −51.8% | +7.4% |
+
+Out-of-sample the ordering is closer: regime_switch +9.7%/0.52/−46.7% against
+reversal +7.7%/**0.54**/**−24.8%**. Reversal has the better out-of-sample
+risk-adjusted return and half the drawdown; regime_switch has the higher return
+and is invested 89% of the time instead of 28%. The composite is live because
+the product needs a portfolio that is doing something in both regimes — a
+product decision, not a claim that it is the better strategy.
+
+Why the composite beats the momentum it replaced: **concentration, not selection.**
+In risk-on periods, top 3 (+9.4%/yr), top 8 (+9.6%) and owning every liquid name
+(+9.6%) are indistinguishable. Holding only 3 names took idiosyncratic risk for
+no return. `switch_top_n=8` is not a clean plateau either (Sharpe by top_n:
+0.60 / 0.43 / 0.66 / 0.71 / 0.61 at 3 / 5 / 8 / 10 / 13); 8 was written to config
+before that table existed and left there rather than moved to the best cell.
+
 ## What shipped
 
 - `idxquant/strategies/reversal.py` — `RiskOffReversal`, the strategy above.
-- `idxquant/strategies/regime_switch.py` — momentum when risk-on, reversal when
-  risk-off. Highest CAGR tested (+9.1% full, +11.6% OOS) **and the deepest drawdown
-  tested (−62.2%)**, because the momentum leg is weak on this universe (+3.3%/yr,
-  −50% drawdown on its own) and liquidates into the regime flip.
+- `idxquant/strategies/regime_switch.py` — momentum top 8 when risk-on, reversal
+  top 5 when risk-off. **Now the live strategy**; figures in the addendum below.
 - `idxquant/research/riskoff.py` + a dashboard panel that renders **only** in risk-off,
   reads the same `rank_frame()` the strategy trades, and recomputes the live episode
   through the costed engine on every render.
-- Both new strategies are registered in the factory but **`momentum` remains the
-  default**. Switching the live paper portfolio is a config decision for the operator.
+- `idxquant/backtest/engine.py` — the mark-to-market fix, plus
+  `tests/test_missing_price_mark.py`.
+- `scripts/research/bt_live_config.py` — the authority for any quoted number,
+  because it measures the strategy the factory actually builds.
 
 ## Reproducing
 
@@ -120,9 +172,13 @@ Every number above regenerates from the committed scripts (a few minutes total):
 
 ## Open threads
 
-1. **The momentum leg needs its own review.** +3.3%/yr with a 50% drawdown is worse
-   than the index, and it is what the paper portfolio trades today. Not caused by the
-   drawdown halt or by `top_n` — checked both.
-2. **Survivorship.** The honest fix is a point-in-time universe with delisted names.
-   Until then, treat live results as the test.
-3. The sign test (p=0.073) wants more episodes. Only time supplies those.
+1. **Survivorship.** The honest fix is a point-in-time universe including delisted
+   names. Until then, treat live results as the test.
+2. The sign test (p=0.073) wants more episodes. Only time supplies those.
+3. **`switch_top_n` is noisy** — Sharpe dips to 0.43 at top_n=5, between 0.60 at 3
+   and 0.66 at 8. Worth understanding rather than tuning around.
+4. **Nothing reads data-quality at backtest time.** The 2019-06-19 gap was invisible
+   until it corrupted a result. Ingest already writes `data_quality` rows; a run that
+   marks positions on carried-forward prices should say so out loud.
+5. **Momentum standalone** measured +2.2%/yr with a −41.5% drawdown. It is no longer
+   live, but it is still registered and still unexplained.

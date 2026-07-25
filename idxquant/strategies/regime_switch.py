@@ -7,42 +7,66 @@ what has been strong, reversal buys what has been weak, and the regime decides
 which question is the right one. Neither leg is new; both are composed from the
 existing modules so there is one implementation of each.
 
-EVIDENCE (real engine, real costs, 2010-01 to 2026-07):
+This is the LIVE strategy as of 2026-07-25 (config/settings.yaml). It replaced
+standalone momentum, which measured below the index.
+
+EVIDENCE. Every number below comes from scripts/research/bt_live_config.py,
+which runs exactly what make_strategy() returns — not a research approximation
+of it. That distinction is not pedantic: an earlier draft of this docstring
+quoted -38.1% max drawdown from a script that rebalanced momentum on a fixed
+21-day grid, where the real strategy uses calendar month-ends plus an
+absolute-momentum gate. The real figure is -44.7%.
+
+`switch_top_n=8`, 2010-01 to 2026-07, real costs, lots, liquidity caps, halt:
 
                                     CAGR   Sharpe   maxDD   risk-off ann
     full 2010-2026
-      momentum only (live today)    +3.3%   0.27    -50.0%     -8.0%
-      reversal only (risk-off)      +7.7%   0.54    -30.1%    +17.2%
-      THIS composite                +9.1%   0.48    -62.2%     +0.9%
+      momentum only (was live)      +2.2%   0.22    -41.5%     -8.5%
+      reversal only (risk-off)      +7.8%   0.55    -29.1%    +17.9%
+      THIS composite               +13.0%   0.66    -44.7%     +6.4%
       JCI buy & hold                +5.2%   0.39    -41.5%     -6.0%
       BBCA buy & hold              +13.8%   0.63    -51.8%     +7.4%
     out-of-sample 2019-2026
-      momentum only                 +3.2%   0.25    -39.0%     -5.0%
-      reversal only                 +7.6%   0.53    -24.8%    +19.6%
-      THIS composite               +11.6%   0.53    -41.4%    +16.2%
+      momentum only                 +0.2%   0.11    -30.1%     -5.0%
+      reversal only                 +7.7%   0.54    -24.8%    +21.1%
+      THIS composite                +9.7%   0.52    -46.7%     +6.2%
+      JCI buy & hold                -0.6%   0.05    -41.5%    -16.8%
+      BBCA buy & hold               +5.1%   0.33    -51.8%     -0.4%
 
-READ THE DRAWDOWN COLUMN BEFORE THE CAGR COLUMN. The composite earns the
-highest CAGR of anything tested and also the deepest drawdown of anything
-tested — deeper than either leg alone and deeper than simply holding the index.
-Two reasons, both real:
+Cost stress, full period:
+      1x  CAGR +13.0% Sharpe 0.66  |  2x  +7.8% / 0.45  |  3x  +1.9% / 0.20
+It clears the project's 2x-cost bar. (An earlier approximation suggested it did
+not; that was the same grid artifact.)
 
-  1. The momentum leg is weak on this universe. On its own it returns +3.3%/yr
-     with a 50% drawdown, worse than the index. That is not a costs artifact and
-     not the drawdown halt: disabling the halt and varying top_n (3/5/8) leaves
-     it in the same place. It needs its own review.
-  2. The legs share one equity curve and one 20% drawdown halt. When the regime
-     flips to risk-off the momentum leg liquidates into the fall, and those
-     losses land on exactly the risk-off days the reversal leg is measured over.
-     That is why the composite's full-period risk-off number (+0.9%) is so much
-     worse than the reversal leg alone (+17.2%) despite holding the same names.
+WHY IT BEATS THE MOMENTUM IT REPLACED. Concentration, not stock selection, was
+the problem. In risk-on periods, holding the top 3 by momentum (+9.4%/yr), the
+top 8 (+9.6%) and simply owning every liquid name (+9.6%) are indistinguishable
+— selection adds nothing there. Holding only 3 names added idiosyncratic risk
+for no return. The gain here comes from being less concentrated in risk-on and
+from having something to do in risk-off, not from picking better.
 
-So this is registered as an option, not made the default. `reversal` alone has
-the better risk-adjusted record and far more robustness evidence behind it; this
-one wins on raw return by leaning on the leg with the weaker case. Switching the
-live paper portfolio is a decision for the operator, made in config, once.
+HONEST READING OF THE TRADE-OFF vs `reversal` ALONE:
 
-See idxquant/strategies/reversal.py for the survivorship-bias qualification that
-applies to the risk-off leg here too.
+  - `switch_top_n` is NOT a clean plateau. Full-period Sharpe by top_n reads
+    0.60 (3), 0.43 (5), 0.66 (8), 0.71 (10), 0.61 (13). The dip at 5 says this
+    surface carries real noise. 8 was chosen and written into config BEFORE this
+    table was produced, and is deliberately left alone rather than moved to 10:
+    picking the best cell of a bumpy surface is how backtests get flattered.
+  - Out-of-sample, `reversal` alone is arguably the better strategy: Sharpe 0.54
+    vs 0.52, and a -24.8% drawdown against -46.7%, for 2pp less CAGR. This
+    composite's edge is strongest in-sample.
+  - It is configured live anyway because the product needs a portfolio that is
+    doing something in both regimes; `reversal` sits in cash 72% of the time.
+    That is a product decision, not a claim that it is the better strategy.
+    If drawdown matters more than activity, `reversal` is one config line away.
+
+Numbers dated before 2026-07-25 differ: they were measured with a mark-to-market
+bug that valued positions with a missing close at zero (see backtest/engine.py
+build_frames). The reversal leg was unaffected — it was in cash on the only
+affected day.
+
+See idxquant/strategies/reversal.py for the survivorship-bias qualification,
+which applies to the risk-off leg here too.
 """
 from __future__ import annotations
 

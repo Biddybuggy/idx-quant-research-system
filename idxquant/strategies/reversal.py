@@ -25,15 +25,22 @@ in the whole study after costs: -10.7%/yr, because weekly re-ranking turns over
 Whatever survives here is chosen for surviving costs, not for signal strength.
 
 EVIDENCE (21 names, 2010-01 to 2026-07, real engine, real costs, lots, liquidity
-caps and the 20% drawdown halt; risk-off = JCI below its 200d SMA):
+caps and the 20% drawdown halt; risk-off = JCI below its 200d SMA). Headline
+figures are measured on the strategy as make_strategy() builds it, via
+scripts/research/bt_live_config.py:
 
                                  in-sample   out-of-sample   full
                                   2010-18       2019-26     2010-26
-    this strategy, risk-off ann    +18.2%        +19.6%      +17.2%
+    this strategy, risk-off ann    +18.2%        +21.1%      +17.9%
     JCI buy & hold,  risk-off       +5.0%        -16.8%       -6.0%
     BBCA buy & hold, risk-off      +15.2%         -0.4%       +7.4%
-    full-period CAGR / Sharpe / maxDD:           +7.7% / 0.54 / -30.1%
+    full-period CAGR / Sharpe / maxDD:           +7.8% / 0.55 / -29.1%
     (JCI +5.2% / 0.39 / -41.5%,  BBCA +13.8% / 0.63 / -51.8%)
+    out-of-sample CAGR / Sharpe / maxDD:         +7.7% / 0.54 / -24.8%
+
+Of everything tested on this universe, this has the shallowest drawdown and the
+steadiest in-sample/out-of-sample agreement. It is the fallback if the live
+`regime_switch` composite disappoints (see strategies/regime_switch.py).
 
 Robustness, all run before this file was written:
   - parameter surface: 36 of 36 cells (lookback 40/60/90/120 x top 3/5/8 x

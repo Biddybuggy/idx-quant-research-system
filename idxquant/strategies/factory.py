@@ -9,9 +9,10 @@ from .sma_crossover import SmaCrossover
 from .tactical_rs import TacticalRelativeStrength
 
 
-def _momentum(s, cfg) -> CrossSectionalMomentum:
+def _momentum(s, cfg, top_n: int | None = None) -> CrossSectionalMomentum:
     return CrossSectionalMomentum(int(s["lookback"]), int(s["skip"]),
-                                  int(s["top_n"]), cfg.regime_sma)
+                                  int(top_n if top_n is not None else s["top_n"]),
+                                  cfg.regime_sma)
 
 
 def _reversal(s, cfg) -> RiskOffReversal:
@@ -31,7 +32,12 @@ def make_strategy(cfg: Config, **overrides):
     if name == "reversal":
         return _reversal(s, cfg)
     if name == "regime_switch":
-        return RegimeSwitch(_momentum(s, cfg), _reversal(s, cfg), cfg.regime_sma)
+        # The composite's risk-on leg holds MORE names than momentum-alone does.
+        # Concentration is what made the standalone strategy fragile, and top_n
+        # 8-13 is a measured plateau, so the two are configured separately
+        # rather than sharing one number that suits neither.
+        return RegimeSwitch(_momentum(s, cfg, s.get("switch_top_n", 8)),
+                            _reversal(s, cfg), cfg.regime_sma)
     if name == "sma_crossover":
         return SmaCrossover(int(s["fast"]), int(s["slow"]), cfg.regime_sma)
     if name == "tactical_rs":

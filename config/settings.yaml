@@ -41,14 +41,23 @@ risk:
 
 strategy:
   # active strategy: momentum | reversal | regime_switch | sma_crossover
-  # `reversal` and `regime_switch` are validated but NOT default — see the
-  # evidence and the survivorship caveat in idxquant/strategies/reversal.py
-  # before switching the live paper portfolio.
-  name: momentum
+  #
+  # Switched from `momentum` to `regime_switch` on 2026-07-25. Momentum alone
+  # measured +3.5%/yr with a -43% drawdown over 2010-2026 — below the index.
+  # The composite (momentum top 8 when JCI is risk-on, 60-day reversal top 5
+  # when risk-off) measured +12.3%/yr, Sharpe 0.63, -38% drawdown, and holds
+  # up out-of-sample. Read the survivorship caveat in strategies/reversal.py
+  # and the cost-sensitivity caveat in strategies/regime_switch.py first.
+  name: regime_switch
   # cross-sectional momentum params
   lookback: 252             # ~12 months
   skip: 21                  # ~1 month (short-term reversal skip)
-  top_n: 3
+  top_n: 3                  # used by `momentum` standalone only
+  # Risk-on leg inside `regime_switch`. Set before the surface was measured and
+  # left alone on purpose: full-period Sharpe by top_n is 0.60/0.43/0.66/0.71/0.61
+  # at 3/5/8/10/13 — noisy, not a plateau, and 10 is the best cell. Moving here to
+  # chase that cell is how a backtest gets flattered.
+  switch_top_n: 8
   # risk-off reversal params (centre of the tested surface, not its best cell)
   rev_lookback: 60
   rev_top_n: 5
