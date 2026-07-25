@@ -147,7 +147,9 @@ def cmd_signal(cfg):
     summary, _ = cmd_backtest(load_config(), quiet=True)
     holding = summary.get("median_holding_days", 30.0)
     out = ROOT / "data" / "signals_latest.json"
-    payload = generate_signal_file(prices, index_close, strat, cfg, holding, out)
+    held = {r[0] for r in con.execute("SELECT ticker FROM paper_positions")}
+    payload = generate_signal_file(prices, index_close, strat, cfg, holding, out,
+                                   held_tickers=held)
     for e in payload["signals"]:
         con.execute(
             "INSERT INTO signals (date, ticker, strategy, action, confidence, reasoning, "

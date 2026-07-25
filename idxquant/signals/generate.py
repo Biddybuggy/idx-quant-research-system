@@ -25,7 +25,18 @@ def generate_signal_file(
     cfg: Config,
     expected_holding_days: float,
     out_path: Path,
+    held_tickers: set[str] | None = None,
 ) -> dict:
+    """`held_tickers` is what the paper portfolio ACTUALLY owns right now.
+
+    When supplied, the action is what the portfolio will do at the next open,
+    which is what a reader means by "what is it doing". Without it the action
+    can only describe the strategy's own signal transition, and the two diverge
+    the moment the configured strategy changes: on 2026-07-25 the strategy was
+    switched to regime_switch, whose reversal leg had been signalling ASII and
+    UNTR since March, so the file said HOLD_LONG for names the portfolio had
+    never bought while the dashboard next to it said "holding nothing".
+    """
     sig = strategy.signals(prices, index_close)
     today, yesterday = sig.index[-1], sig.index[-2]
     regime_ok = bool(ind.regime_filter(index_close, strategy.regime_sma).iloc[-1])
@@ -34,7 +45,10 @@ def generate_signal_file(
 
     entries = []
     for t in sig.columns:
-        now, prev = int(sig.loc[today, t]), int(sig.loc[yesterday, t])
+        now = int(sig.loc[today, t])
+        # Fall back to the signal's own transition only when holdings are unknown.
+        prev = (int(t in held_tickers) if held_tickers is not None
+                else int(sig.loc[yesterday, t]))
         action = {(1, 0): "ENTER_LONG", (1, 1): "HOLD_LONG",
                   (0, 1): "EXIT", (0, 0): "NO_POSITION"}[(now, prev)]
         ctx = strategy.signal_context(t, prices, index_close)

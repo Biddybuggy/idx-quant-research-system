@@ -40,15 +40,17 @@ def run() -> dict:
         prices = {t: db.load_prices(con, t) for t in cfg.tickers}
         index_close = db.load_prices(con, cfg.index_ticker)["Close"]
         strategy = make_strategy(cfg)
+        held = {p["ticker"] for p in paper_summary["positions"]}
         payload = generate_signal_file(
             prices, index_close, strategy, cfg,
             expected_holding_days=30.0,
             out_path=ROOT / "data" / "signals_latest.json",
+            held_tickers=held,          # so the action is what happens next, not
+                                        # what the signal frame did yesterday
         )
         con.close()
 
         stage = "notify"
-        held = {p["ticker"] for p in paper_summary["positions"]}
         research = stock_research(prices, index_close, cfg, held)
         telegram.send(telegram.compose_daily(
             payload, paper_summary, top_movers_line(research)))
