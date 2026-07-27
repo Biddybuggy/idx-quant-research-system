@@ -3,14 +3,50 @@
   "started_at": "2025-12-23",
   "strategy": "xmom_252_21_top3_regime200",
   "backfill_until": "2026-07-10",
-  "last_processed": "2026-07-24",
-  "cash": "96007953.19657463",
+  "last_processed": "2026-07-27",
+  "cash": "2043946.2885746136",
   "peak": "108506793.24499223",
   "halted": "0",
   "cooloff": "0",
-  "prev_equity": "96007953.19657463"
+  "prev_equity": "94924946.2885746"
  },
- "paper_positions": [],
+ "paper_positions": [
+  {
+   "ticker": "ASII.JK",
+   "shares": 3800,
+   "entry_date": "2026-07-27",
+   "entry_price": 4959.9,
+   "entry_costs": 28271.43
+  },
+  {
+   "ticker": "UNTR.JK",
+   "shares": 700,
+   "entry_date": "2026-07-27",
+   "entry_price": 25450.8,
+   "entry_costs": 26723.34
+  },
+  {
+   "ticker": "SMGR.JK",
+   "shares": 13200,
+   "entry_date": "2026-07-27",
+   "entry_price": 1452.9,
+   "entry_costs": 28767.420000000002
+  },
+  {
+   "ticker": "ANTM.JK",
+   "shares": 6300,
+   "entry_date": "2026-07-27",
+   "entry_price": 3026.04,
+   "entry_costs": 28596.078
+  },
+  {
+   "ticker": "CPIN.JK",
+   "shares": 5900,
+   "entry_date": "2026-07-27",
+   "entry_price": 3206.4,
+   "entry_costs": 28376.64
+  }
+ ],
  "trades": [
   {
    "run_id": "paper-live",
@@ -1192,6 +1228,14 @@
    "cash": 96007953.19657463,
    "exposure": 0.0,
    "drawdown": -0.1151894703974623
+  },
+  {
+   "run_id": "paper-live",
+   "date": "2026-07-27",
+   "equity": 94924946.2885746,
+   "cash": 2043946.2885746136,
+   "exposure": 0.9784677646025635,
+   "drawdown": -0.12517047596966424
   }
  ]
 }
