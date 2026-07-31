@@ -3,28 +3,14 @@
   "started_at": "2025-12-23",
   "strategy": "xmom_252_21_top3_regime200",
   "backfill_until": "2026-07-10",
-  "last_processed": "2026-07-30",
-  "cash": "2043946.2885746136",
+  "last_processed": "2026-07-31",
+  "cash": "663060.0330746099",
   "peak": "108506793.24499223",
   "halted": "0",
   "cooloff": "0",
-  "prev_equity": "94404946.2885746"
+  "prev_equity": "94700560.03307462"
  },
  "paper_positions": [
-  {
-   "ticker": "ASII.JK",
-   "shares": 3800,
-   "entry_date": "2026-07-27",
-   "entry_price": 4959.9,
-   "entry_costs": 28271.43
-  },
-  {
-   "ticker": "UNTR.JK",
-   "shares": 700,
-   "entry_date": "2026-07-27",
-   "entry_price": 25450.8,
-   "entry_costs": 26723.34
-  },
   {
    "ticker": "SMGR.JK",
    "shares": 13200,
@@ -40,11 +26,25 @@
    "entry_costs": 28596.078
   },
   {
-   "ticker": "CPIN.JK",
-   "shares": 5900,
-   "entry_date": "2026-07-27",
-   "entry_price": 3206.4,
-   "entry_costs": 28376.64
+   "ticker": "INCO.JK",
+   "shares": 3700,
+   "entry_date": "2026-07-31",
+   "entry_price": 5035.05,
+   "entry_costs": 27944.5275
+  },
+  {
+   "ticker": "PTBA.JK",
+   "shares": 8000,
+   "entry_date": "2026-07-31",
+   "entry_price": 2354.7,
+   "entry_costs": 28256.4
+  },
+  {
+   "ticker": "EXCL.JK",
+   "shares": 7600,
+   "entry_date": "2026-07-31",
+   "entry_price": 2464.92,
+   "entry_costs": 28100.088
   }
  ],
  "trades": [
@@ -121,6 +121,51 @@
    "pnl": -3784081.7793190414,
    "return_pct": -0.14513174814828705,
    "holding_days": 3,
+   "open_flag": 0
+  },
+  {
+   "run_id": "paper-live",
+   "ticker": "ASII.JK",
+   "side": "long",
+   "entry_date": "2026-07-27",
+   "entry_price": 4959.9,
+   "exit_date": "2026-07-31",
+   "exit_price": 4990.0,
+   "shares": 3800,
+   "costs": 75676.43,
+   "pnl": 38703.57,
+   "return_pct": 0.0020504234273400882,
+   "holding_days": 4,
+   "open_flag": 0
+  },
+  {
+   "run_id": "paper-live",
+   "ticker": "UNTR.JK",
+   "side": "long",
+   "entry_date": "2026-07-27",
+   "entry_price": 25450.8,
+   "exit_date": "2026-07-31",
+   "exit_price": 23952.0,
+   "shares": 700,
+   "costs": 68639.34,
+   "pnl": -1117799.34,
+   "return_pct": -0.06264889525064565,
+   "holding_days": 4,
+   "open_flag": 0
+  },
+  {
+   "run_id": "paper-live",
+   "ticker": "CPIN.JK",
+   "side": "long",
+   "entry_date": "2026-07-27",
+   "entry_price": 3206.4,
+   "exit_date": "2026-07-31",
+   "exit_price": 3273.44,
+   "shares": 5900,
+   "costs": 76659.88,
+   "pnl": 318876.1200000016,
+   "return_pct": 0.01683066717289344,
+   "holding_days": 4,
    "open_flag": 0
   }
  ],
@@ -1260,6 +1305,14 @@
    "cash": 2043946.2885746136,
    "exposure": 0.9783491610457917,
    "drawdown": -0.12996280264755167
+  },
+  {
+   "run_id": "paper-live",
+   "date": "2026-07-31",
+   "equity": 94700560.03307462,
+   "cash": 663060.0330746099,
+   "exposure": 0.9929983515108777,
+   "drawdown": -0.12723842258194085
   }
  ]
 }
