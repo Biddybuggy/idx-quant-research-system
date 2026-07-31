@@ -7,101 +7,186 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="theme-color" content="#f9f9f7">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#07090f">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=DM+Sans:wght@400;500;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
 <style>
+/* ── Design tokens ──────────────────────────────────────────────────────────
+   Terminal palette from the Figma "Enhance Stock Dashboard Design" pass:
+   near-black canvas, translucent slate cards, a single green signal hue for
+   anything positive/live, cyan for secondary emphasis. Every colour the
+   markup and the server-rendered chart use flows from here. */
 :root{
-  --page:#f9f9f7; --surface:#fcfcfb; --ink:#0b0b0b; --ink-2:#52514e; --muted:#898781;
-  --grid:#e1e0d9; --baseline:#c3c2b7; --border:rgba(11,11,11,.10);
-  --series:#2a78d6; --up:#006300; --down:#d03b3b;
-  --good:#0ca30c; --warn:#fab219; --crit:#d03b3b;
+  color-scheme:dark;
+  --page:#07090f; --surface:rgba(13,18,32,.80); --surface-solid:#0d1220;
+  --ink:#dde4f0; --ink-2:#8ea3c0; --muted:#5c7a9a;
+  --grid:rgba(255,255,255,.06); --baseline:#3d5875; --border:rgba(0,232,122,.10);
+  --sunken:#111927;
+  --series:#00e87a; --up:#00e87a; --down:#e85050;
+  --good:#00e87a; --warn:#f0a500; --crit:#e85050;
+  --accent:#00c4f0; --violet:#a855f7;
+  --sans:'DM Sans',system-ui,-apple-system,"Segoe UI",sans-serif;
+  --cond:'Barlow Condensed',system-ui,sans-serif;
+  --mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
 }
 *{box-sizing:border-box;margin:0}
 body{background:var(--page);color:var(--ink);
-  font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
+  font-family:var(--sans);
   -webkit-font-smoothing:antialiased;
-  padding:max(12px,env(safe-area-inset-top)) 12px calc(24px + env(safe-area-inset-bottom))}
-.wrap{max-width:480px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
+  padding:0 0 calc(24px + env(safe-area-inset-bottom));
+  /* Two faint corner glows plus a dot grid — the depth the flat fill lacks. */
+  background-image:
+    radial-gradient(circle at 20% 12%,rgba(0,232,122,.05) 0%,transparent 46%),
+    radial-gradient(circle at 82% 78%,rgba(0,196,240,.045) 0%,transparent 46%),
+    url("data:image/svg+xml,%3Csvg width='40' height='40' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='1' cy='1' r='.75' fill='%23ffffff' fill-opacity='.025'/%3E%3C/svg%3E");
+  background-attachment:fixed}
+.wrap{max-width:480px;margin:0 auto;display:flex;flex-direction:column;gap:12px;
+  padding:0 12px}
 /* On phones the main/toprow/side-rail wrappers are transparent, so every card
    flows in the single .wrap column with one uniform gap. The desktop media
    queries below turn them into real grid/flex containers. */
 .main,.toprow,.side-rail,.cols{display:contents}
-header{display:flex;align-items:center;justify-content:space-between;padding:4px 4px 0}
-header h1{font-size:17px;font-weight:650}
-.asof{color:var(--muted);font-size:12px}
-.lang{border:1px solid var(--border);border-radius:999px;background:var(--surface);
-  color:var(--ink-2);font-size:12px;padding:4px 10px;cursor:pointer}
-.card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px}
-.banner{border-radius:12px;padding:10px 14px;font-size:13.5px;display:flex;gap:8px;align-items:center}
-.banner.warn{background:color-mix(in srgb,var(--warn) 14%,var(--surface));}
-.banner.crit{background:color-mix(in srgb,var(--crit) 12%,var(--surface));}
-.banner.info{background:var(--surface);border:1px solid var(--grid);color:var(--muted);
-  font-size:12.5px}
-.status{font-size:15px;line-height:1.45;color:var(--ink);margin-bottom:14px}
-.label{font-size:12.5px;color:var(--ink-2);margin-bottom:2px}
-.hero{font-size:40px;font-weight:650;letter-spacing:-.5px;line-height:1.1}
-.hero .cur{font-size:20px;font-weight:550;color:var(--ink-2);margin-right:2px}
-.deltas{display:flex;gap:14px;margin-top:8px;font-size:13.5px}
+
+/* ── Top bar: sticky chrome, the frame the terminal look hangs off ────────── */
+.topbar{position:sticky;top:0;z-index:30;background:rgba(7,9,15,.88);
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--border);
+  padding:max(8px,env(safe-area-inset-top)) 12px 8px}
+header{display:flex;align-items:center;justify-content:space-between;gap:10px;
+  max-width:480px;margin:0 auto}
+.brand{display:flex;align-items:center;gap:9px;min-width:0}
+.mark{flex:0 0 24px;height:24px;border-radius:5px;background:var(--series);
+  display:grid;place-items:center;color:var(--page)}
+header h1{font-family:var(--cond);font-size:17px;font-weight:700;letter-spacing:.14em;
+  text-transform:uppercase;line-height:1.1;white-space:nowrap}
+.asof{color:var(--muted);font-family:var(--mono);font-size:10px;letter-spacing:.08em;
+  text-transform:uppercase;margin-top:1px}
+.lang{border:1px solid var(--border);border-radius:6px;background:var(--sunken);
+  color:var(--ink-2);font-family:var(--mono);font-size:11px;letter-spacing:.1em;
+  padding:5px 10px;cursor:pointer;transition:color .15s,border-color .15s}
+.lang:hover{color:var(--series);border-color:rgba(0,232,122,.35)}
+
+/* ── Ticker strip: real JCI numbers, read left-to-right like a tape ───────── */
+.tape{display:flex;align-items:center;gap:18px;overflow-x:auto;
+  font-family:var(--mono);font-size:10px;letter-spacing:.04em;
+  max-width:480px;margin:8px auto 0;padding-bottom:2px;
+  scrollbar-width:none;
+  /* Fades the cut-off edge so a scrolled-past tape reads as continuing, not clipped. */
+  -webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 28px),transparent);
+  mask-image:linear-gradient(90deg,#000 calc(100% - 28px),transparent)}
+.tape::-webkit-scrollbar{display:none}
+.tape > *{flex:0 0 auto;display:flex;align-items:center;gap:6px}
+.tape .k{color:var(--muted);text-transform:uppercase;font-style:normal}
+.tape .v{color:var(--ink);font-weight:500;font-variant-numeric:tabular-nums}
+.tape .regime{font-weight:600}
+.tape .regime.on{color:var(--series)} .tape .regime.off{color:var(--warn)}
+.pulse{width:6px;height:6px;border-radius:50%;background:currentColor;
+  animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+
+/* ── Cards: translucent slate, hairline of light along the top edge ───────── */
+.card{position:relative;background:var(--surface);border:1px solid var(--border);
+  border-radius:12px;padding:16px;overflow:hidden;
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+.card::before{content:"";position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,var(--series),transparent);opacity:.55}
+.card--chart::before,.card--trades::before{background:linear-gradient(90deg,transparent,var(--accent),transparent);opacity:.4}
+.card--riskoff::before{background:linear-gradient(90deg,transparent,var(--violet),transparent);opacity:.45}
+.card--signals::before{background:linear-gradient(90deg,transparent,var(--warn),transparent);opacity:.4}
+.banner{border-radius:10px;padding:9px 13px;font-size:13px;display:flex;gap:8px;
+  align-items:center;border:1px solid var(--grid)}
+.banner.warn{background:rgba(240,165,0,.10);border-color:rgba(240,165,0,.28);color:var(--ink)}
+.banner.crit{background:rgba(232,80,80,.10);border-color:rgba(232,80,80,.30);color:var(--ink)}
+.banner.info{background:rgba(13,18,32,.6);color:var(--muted);font-size:12px}
+.status{font-size:14.5px;line-height:1.5;color:var(--ink-2);margin-bottom:14px}
+.label{font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--muted);margin-bottom:6px}
+.hero{font-family:var(--mono);font-size:38px;font-weight:600;letter-spacing:-1px;
+  line-height:1.05;color:var(--ink);font-variant-numeric:tabular-nums}
+.hero .cur{font-family:var(--cond);font-size:20px;font-weight:600;color:var(--muted);
+  margin-right:4px;letter-spacing:0}
+.deltas{display:flex;gap:14px;margin-top:10px;font-family:var(--mono);font-size:12.5px}
 .delta.up{color:var(--up)} .delta.down{color:var(--down)} .delta.flat{color:var(--muted)}
-.delta small{color:var(--muted);font-size:12px;margin-left:3px}
-h2{font-size:13px;font-weight:600;color:var(--ink-2);text-transform:none;margin-bottom:10px}
+.delta small{color:var(--muted);font-size:11px;margin-left:4px}
+h2{font-family:var(--mono);font-size:10px;font-weight:500;color:var(--muted);
+  text-transform:uppercase;letter-spacing:.16em;margin-bottom:12px}
 .eqchart{width:100%;height:auto;display:block}
 .eqchart .grid{stroke:var(--grid);stroke-width:1}
 .eqchart .marker{stroke:var(--baseline);stroke-width:1}
-.eqchart .tick{fill:var(--muted);font-size:9.5px;font-variant-numeric:tabular-nums}
-.eqchart .area{fill:var(--series);opacity:.10}
+.eqchart .tick{fill:var(--muted);font-family:var(--mono);font-size:9px;
+  font-variant-numeric:tabular-nums}
+.eqchart .area{fill:var(--series);opacity:.16}
 .eqchart .line{fill:none;stroke:var(--series);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
 .eqchart .hov-x{stroke:var(--baseline);stroke-width:1}
-.eqchart .hov-dot{fill:var(--series);stroke:var(--surface);stroke-width:2}
+.eqchart .hov-dot{fill:var(--series);stroke:var(--surface-solid);stroke-width:2}
 .chartwrap{position:relative}
-.tip{position:absolute;pointer-events:none;background:var(--ink);color:var(--page);
-  border-radius:8px;padding:5px 9px;font-size:12px;display:none;white-space:nowrap;
-  transform:translate(-50%,-115%)}
-.tip b{font-variant-numeric:tabular-nums}
-.caption{color:var(--muted);font-size:11.5px;margin-top:8px;line-height:1.4}
+.tip{position:absolute;pointer-events:none;background:var(--surface-solid);
+  border:1px solid rgba(0,232,122,.25);color:var(--muted);
+  border-radius:6px;padding:5px 9px;font-family:var(--mono);font-size:11px;display:none;
+  white-space:nowrap;transform:translate(-50%,-115%);box-shadow:0 4px 16px rgba(0,0,0,.5)}
+.tip b{color:var(--series);font-variant-numeric:tabular-nums;font-weight:600}
+.caption{color:var(--muted);font-size:11.5px;margin-top:8px;line-height:1.45}
 .row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;
   border-bottom:1px solid var(--grid)}
 .row:last-child{border-bottom:none;padding-bottom:0}
 .row:first-of-type{padding-top:2px}
-.tk{font-weight:600;font-size:14.5px}
-.sub{color:var(--muted);font-size:12px;margin-top:1px}
-.num{text-align:right;font-variant-numeric:tabular-nums;font-size:13.5px}
-.badge{display:inline-flex;align-items:center;gap:5px;border-radius:999px;
-  padding:3px 10px;font-size:12px;font-weight:600}
-.badge.buy{background:color-mix(in srgb,var(--good) 14%,var(--surface));color:var(--ink)}
-.badge.sell{background:color-mix(in srgb,var(--crit) 12%,var(--surface));color:var(--ink)}
-.badge.hold{background:color-mix(in srgb,var(--series) 12%,var(--surface));color:var(--ink)}
-.badge .dot{width:7px;height:7px;border-radius:50%}
-.badge.buy .dot{background:var(--good)} .badge.sell .dot{background:var(--crit)}
-.badge.hold .dot{background:var(--series)}
-.reason{color:var(--ink-2);font-size:13px;line-height:1.5;margin-top:6px}
-.empty{color:var(--ink-2);font-size:13.5px;line-height:1.5}
-footer{color:var(--muted);font-size:11.5px;line-height:1.55;text-align:center;padding:4px 12px}
+.tk{font-family:var(--cond);font-weight:600;font-size:15px;letter-spacing:.03em}
+.sub{color:var(--muted);font-family:var(--mono);font-size:10px;margin-top:2px}
+.num{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:12.5px}
+.badge{display:inline-flex;align-items:center;gap:5px;border-radius:4px;
+  padding:3px 8px;font-family:var(--mono);font-size:9.5px;font-weight:500;
+  letter-spacing:.06em;text-transform:uppercase;border:1px solid transparent}
+.badge.buy{background:rgba(0,232,122,.12);border-color:rgba(0,232,122,.28);color:var(--good)}
+.badge.sell{background:rgba(232,80,80,.12);border-color:rgba(232,80,80,.28);color:var(--crit)}
+.badge.hold{background:rgba(0,196,240,.12);border-color:rgba(0,196,240,.28);color:var(--accent)}
+.badge .dot{width:6px;height:6px;border-radius:50%;background:currentColor}
+.reason{color:var(--muted);font-size:12.5px;line-height:1.55;margin-top:7px}
+.empty{color:var(--ink-2);font-size:13px;line-height:1.55}
+
+/* ── Footer: a status strip, then the standing disclaimer ────────────────── */
+.statusbar{display:flex;flex-wrap:wrap;gap:6px 16px;justify-content:space-between;
+  border-top:1px solid var(--border);padding:10px 2px 8px;
+  font-family:var(--mono);font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--muted)}
+.statusbar span{display:flex;align-items:center;gap:6px}
+.statusbar .live{color:var(--series)}
+.statusbar .warn{color:var(--warn)}
+footer{color:var(--muted);font-size:11px;line-height:1.6;text-align:center;padding:2px 12px}
 /* research section */
-.mkt{display:flex;gap:12px;flex-wrap:wrap;color:var(--ink-2);font-size:13px;
-  padding-bottom:10px;border-bottom:1px solid var(--grid);margin-bottom:4px}
-.mkt b{color:var(--ink);font-variant-numeric:tabular-nums;font-weight:600}
+.mkt{display:flex;gap:12px;flex-wrap:wrap;color:var(--muted);font-family:var(--mono);
+  font-size:10px;letter-spacing:.06em;text-transform:uppercase;
+  padding-bottom:11px;border-bottom:1px solid var(--grid);margin-bottom:4px}
+.mkt b{color:var(--ink);font-variant-numeric:tabular-nums;font-weight:600;
+  text-transform:none;letter-spacing:0}
 details.stock{border-bottom:1px solid var(--grid)}
 details.stock:last-of-type{border-bottom:none}
 details.stock summary{display:flex;align-items:center;gap:10px;padding:11px 0;
   cursor:pointer;list-style:none;-webkit-tap-highlight-color:transparent}
 details.stock summary::-webkit-details-marker{display:none}
-.rank{flex:0 0 24px;height:24px;border-radius:8px;background:var(--page);
-  border:1px solid var(--border);color:var(--ink-2);font-size:11.5px;font-weight:650;
+details.stock summary:hover{background:rgba(0,232,122,.03)}
+.rank{flex:0 0 24px;height:24px;border-radius:5px;background:var(--sunken);
+  border:1px solid var(--grid);color:var(--muted);font-family:var(--mono);
+  font-size:10.5px;font-weight:600;
   display:flex;align-items:center;justify-content:center;font-variant-numeric:tabular-nums}
 .stock .mid{flex:1;min-width:0}
-.vlabel{font-size:11px;font-weight:600;margin-top:1px}
+.vlabel{font-family:var(--mono);font-size:9.5px;font-weight:500;letter-spacing:.08em;
+  text-transform:uppercase;margin-top:3px}
 .vlabel.buy{color:var(--up)} .vlabel.weak{color:var(--down)}
-.vlabel.hold{color:var(--series)} .vlabel.wait{color:var(--ink-2)}
+.vlabel.hold{color:var(--accent)} .vlabel.wait{color:var(--ink-2)}
 .vlabel.muted{color:var(--muted)}
-.arrow{color:var(--muted);font-size:14px}
-.chev{color:var(--muted);font-size:11px;transition:transform .15s;margin-left:2px}
-details[open] .chev{transform:rotate(90deg)}
+.arrow{color:var(--muted);font-size:13px}
+.chev{color:var(--muted);font-size:10px;transition:transform .15s;margin-left:2px}
+details[open] .chev{transform:rotate(90deg);color:var(--series)}
 .detail{padding:2px 0 14px 34px}
-.dgrid{display:grid;grid-template-columns:1fr 1fr;gap:7px 16px;margin-bottom:8px}
-.dgrid div{font-size:12.5px;color:var(--muted)}
-.dgrid b{display:block;color:var(--ink);font-weight:600;font-size:13.5px;
-  font-variant-numeric:tabular-nums;margin-top:1px}
+.dgrid{display:grid;grid-template-columns:1fr 1fr;gap:9px 16px;margin-bottom:8px}
+.dgrid div{font-family:var(--mono);font-size:9.5px;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--muted);
+  background:var(--sunken);border-radius:5px;padding:6px 9px}
+.dgrid b{display:block;color:var(--ink);font-weight:600;font-size:12.5px;
+  letter-spacing:0;text-transform:none;
+  font-variant-numeric:tabular-nums;margin-top:3px}
 /* descriptive short-term movement — separated from the long-term view above */
 .stsub{border-top:1px dashed var(--grid);margin-top:10px;padding-top:10px}
 
@@ -109,24 +194,30 @@ details[open] .chev{transform:rotate(90deg)}
    Only rendered while JCI is risk-off. Visually distinct from the momentum
    card so it reads as a separate, explicitly experimental track — never as an
    extension of the ranking above. */
-.card--riskoff{border:1px solid color-mix(in srgb,var(--series) 34%,var(--grid))}
-.ro-lede{font-size:13.5px;color:var(--ink-2);margin-bottom:10px}
+.card--riskoff{border-color:rgba(168,85,247,.28)}
+.ro-lede{font-size:13px;color:var(--ink-2);line-height:1.55;margin-bottom:11px}
 .ro-live{display:flex;flex-wrap:wrap;gap:4px 14px;align-items:baseline;
-  font-size:12.5px;padding:9px 11px;border-radius:9px;margin-bottom:12px;
-  background:color-mix(in srgb,var(--warn) 12%,var(--surface))}
-.ro-live.ok{background:color-mix(in srgb,var(--up) 10%,var(--surface))}
-.ro-live b{font-variant-numeric:tabular-nums}
+  font-family:var(--mono);font-size:11px;line-height:1.5;
+  padding:9px 11px;border-radius:7px;margin-bottom:12px;
+  background:rgba(240,165,0,.10);border:1px solid rgba(240,165,0,.25);color:var(--ink-2)}
+.ro-live.ok{background:rgba(0,232,122,.09);border-color:rgba(0,232,122,.24)}
+.ro-live b{font-variant-numeric:tabular-nums;color:var(--ink)}
 .ro-name{display:flex;align-items:center;gap:10px;padding:9px 0;
   border-top:1px solid var(--grid)}
 .ro-name:first-of-type{border-top:none}
-.ro-rank{flex:0 0 22px;height:22px;border-radius:6px;display:grid;place-items:center;
-  font-size:11.5px;font-weight:700;color:var(--muted);background:var(--grid)}
-.ro-tk{flex:1;min-width:0;font-size:14.5px;font-weight:600}
-.ro-tk small{display:block;font-weight:400;font-size:11.5px;color:var(--muted);margin-top:1px}
-.ro-num{text-align:right;font-size:13px;font-variant-numeric:tabular-nums}
-.ro-num small{display:block;font-size:11px;color:var(--muted)}
+.ro-rank{flex:0 0 22px;height:22px;border-radius:5px;display:grid;place-items:center;
+  font-family:var(--mono);font-size:10.5px;font-weight:600;color:var(--muted);
+  background:var(--sunken);border:1px solid var(--grid)}
+.ro-tk{flex:1;min-width:0;font-family:var(--cond);font-size:15px;font-weight:600;
+  letter-spacing:.03em}
+.ro-tk small{display:block;font-family:var(--mono);font-weight:400;font-size:10px;
+  color:var(--muted);margin-top:2px;letter-spacing:.03em}
+.ro-num{text-align:right;font-family:var(--mono);font-size:12px;
+  font-variant-numeric:tabular-nums}
+.ro-num small{display:block;font-size:9.5px;color:var(--muted);letter-spacing:.05em;
+  text-transform:uppercase;margin-top:2px}
 .ro-caveat{margin-top:12px;padding-top:10px;border-top:1px dashed var(--grid);
-  font-size:11.5px;line-height:1.55;color:var(--muted)}
+  font-size:11px;line-height:1.6;color:var(--muted)}
 /* ── Desktop: a robust two-track layout ─────────────────────────────────────
    .wrap is a 2-column grid (main content + right rail). header/banners/footer
    span both tracks; .main and .side-rail each own one track and stack their own
@@ -135,8 +226,11 @@ details[open] .chev{transform:rotate(90deg)}
    had. Inside .main, hero + chart share a row that collapses to a stack when
    the column gets narrow. */
 @media (min-width:820px){
-  body{padding:24px}
-  .wrap{max-width:1200px;gap:16px}
+  body{padding:0 0 24px}
+  .topbar{padding:14px 24px}
+  header,.tape{max-width:1200px}
+  .tape{-webkit-mask-image:none;mask-image:none}  /* fits without scrolling here */
+  .wrap{max-width:1200px;gap:16px;padding:20px 24px 0}
   /* .cols is a grid of its own (main + side rail only), separate from
      header/banner/footer. Sticky's containing block is this grid's area,
      which is now bounded by .cols itself — it can never reach past .cols
@@ -149,11 +243,10 @@ details[open] .chev{transform:rotate(90deg)}
     align-items:start;
     gap:16px;
   }
-  header{padding:0 2px 2px}
-  header h1{font-size:22px}
-  .asof{font-size:13px;margin-top:2px}
-  .lang{font-size:13px;padding:6px 12px}
-  h2{font-size:13.5px;margin-bottom:12px}
+  header h1{font-size:20px}
+  .asof{font-size:10.5px}
+  .lang{font-size:12px;padding:6px 12px}
+  h2{font-size:10.5px;margin-bottom:14px}
 
   .main{display:flex;flex-direction:column;gap:16px;grid-column:1;min-width:0}
   .toprow{display:grid;grid-template-columns:repeat(auto-fit,minmax(258px,1fr));
@@ -161,35 +254,41 @@ details[open] .chev{transform:rotate(90deg)}
   /* Sticky so the shorter rail stays put as the reader scrolls the longer
      .main column, instead of ending early and leaving a blank stretch beside
      a long research list — the .main column becomes a peninsula otherwise. */
+  /* Offset by the sticky topbar so the rail never slides under the chrome. */
   .side-rail{display:flex;flex-direction:column;gap:16px;grid-column:2;min-width:0;
-    position:sticky;top:24px}
+    position:sticky;top:92px}
 
   .card--hero{display:flex;flex-direction:column;justify-content:space-between}
-  .status{font-size:16px;max-width:46ch}
-  .label{font-size:13px}
-  .hero{font-size:44px;letter-spacing:0}
+  .status{font-size:15px;max-width:46ch}
+  .label{font-size:10px}
+  .hero{font-size:44px;letter-spacing:-1.5px}
   .hero .cur{font-size:22px}
-  .deltas{font-size:14px}
+  .deltas{font-size:13px}
   .card--chart .eqchart{height:200px}
   .card--research .mkt{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px 16px}
   /* Caps the ranking list so a long universe can't stretch .main far past the
      shorter .side-rail column — scrolls internally instead of leaving a lone
      peninsula of cards below an empty side rail. */
-  .stock-list{max-height:460px;overflow-y:auto}
+  .stock-list{max-height:460px;overflow-y:auto;scrollbar-width:thin;
+    scrollbar-color:rgba(0,232,122,.22) transparent}
+  .stock-list::-webkit-scrollbar{width:6px}
+  .stock-list::-webkit-scrollbar-thumb{background:rgba(0,232,122,.22);border-radius:3px}
   details.stock summary{gap:12px;padding:12px 0}
   .rank{flex-basis:28px;height:28px}
-  .tk{font-size:15px}
-  .num{font-size:14px}
+  .tk{font-size:16px}
+  .num{font-size:13px}
   .detail{padding-left:40px}
-  .dgrid{grid-template-columns:repeat(3,minmax(0,1fr));gap:10px 18px}
-  footer{max-width:760px;margin:0 auto;padding-top:8px}
+  .dgrid{grid-template-columns:repeat(3,minmax(0,1fr));gap:10px 12px}
+  footer{max-width:760px;margin:0 auto;padding-top:6px}
 }
 
 @media (min-width:1120px){
-  body{padding:32px}
-  .wrap{max-width:1240px;gap:20px}
+  .topbar{padding:16px 32px}
+  header,.tape{max-width:1240px}
+  .wrap{max-width:1240px;gap:20px;padding:24px 32px 0}
   .cols{grid-template-columns:minmax(0,1fr) minmax(320px,352px);gap:20px}
   .main,.side-rail{gap:20px}
+  .side-rail{top:96px}
   .hero{font-size:50px}
   .card--chart .eqchart{height:216px}
   .row{padding:12px 0}
@@ -197,15 +296,50 @@ details[open] .chev{transform:rotate(90deg)}
 </style>
 </head>
 <body>
-<div class="wrap">
+{# Sticky chrome: identity + the JCI tape. Everything on the tape is real data
+   already in the context — nothing here is decorative filler. #}
+<div class="topbar">
   <header>
-    <div>
-      <h1 data-id="Dasbor Saham" data-en="Stock Dashboard">Dasbor Saham</h1>
-      <div class="asof"><span data-id="per" data-en="as of">per</span> {{ as_of }}</div>
+    <div class="brand">
+      <span class="mark" aria-hidden="true">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/>
+          <line x1="6" y1="20" x2="6" y2="14"/>
+        </svg>
+      </span>
+      <div>
+        <h1 data-id="Dasbor Saham" data-en="Stock Dashboard">Dasbor Saham</h1>
+        <div class="asof"><span data-id="per" data-en="as of">per</span> {{ as_of }}</div>
+      </div>
     </div>
     <button class="lang" onclick="toggleLang()" id="langbtn">EN</button>
   </header>
 
+  <div class="tape">
+    <span class="regime {{ 'on' if market.regime_on else 'off' }}">
+      <span class="pulse"></span>
+      {% if market.regime_on %}
+      <span data-id="PASAR KUAT" data-en="RISK-ON">PASAR KUAT</span>
+      {% else %}
+      <span data-id="PASAR LESU" data-en="RISK-OFF">PASAR LESU</span>
+      {% endif %}
+    </span>
+    <span><i class="k">IHSG</i><b class="v">{{ market.level_str }}</b></span>
+    <span><i class="k" data-id="1 hari" data-en="1d">1 hari</i>
+      <b class="v delta {{ 'up' if market.chg_1d > 0 else 'down' if market.chg_1d < 0 else 'flat' }}">{{ market.chg_1d_str }}</b></span>
+    <span><i class="k" data-id="1 bulan" data-en="1m">1 bulan</i>
+      <b class="v delta {{ 'up' if market.chg_1m > 0 else 'down' if market.chg_1m < 0 else 'flat' }}">{{ market.chg_1m_str }}</b></span>
+    <span><i class="k" data-id="vs tren {{ market.sma_window }}h" data-en="vs {{ market.sma_window }}d trend">vs tren {{ market.sma_window }}h</i>
+      <b class="v delta {{ 'up' if market.vs_sma > 0 else 'down' if market.vs_sma < 0 else 'flat' }}">{{ market.vs_sma_str }}</b></span>
+    <span><i class="k" data-id="Portofolio" data-en="Portfolio">Portofolio</i>
+      <b class="v">Rp {{ equity_str }}</b></span>
+    <span><i class="k" data-id="Posisi" data-en="Positions">Posisi</i>
+      <b class="v">{{ positions|length }}</b></span>
+  </div>
+</div>
+
+<div class="wrap">
   {# Always exactly one freshness line, so the page says what it is every day. #}
   <div class="banner {{ 'warn' if stale else 'info' }}">{{ '⚠️' if stale else '🕒' }}
     <span data-id="{{ fresh_id }}" data-en="{{ fresh_en }}">{{ fresh_id }}</span></div>
@@ -393,6 +527,16 @@ details[open] .chev{transform:rotate(90deg)}
     </section>
     {% endif %}
   </div>
+  </div>
+
+  <div class="statusbar">
+    <span class="{{ 'warn' if stale else 'live' }}">
+      <span class="pulse"></span>
+      <span data-id="Mesin riset · data per {{ as_of }}" data-en="Research engine · data as of {{ as_of }}">Mesin riset · data per {{ as_of }}</span>
+    </span>
+    <span>
+      <span data-id="Portofolio latihan · IDX · penutupan harian" data-en="Practice portfolio · IDX · daily close">Portofolio latihan · IDX · penutupan harian</span>
+    </span>
   </div>
 
   <footer>
