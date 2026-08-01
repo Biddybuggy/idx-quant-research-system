@@ -1,10 +1,11 @@
 """Server-rendered SVG equity chart (mobile-first, theme-aware via CSS vars).
 
-Spec: 2px round-join line in the series hue, area wash at 10% opacity,
-hairline solid gridlines, clean y-ticks, no legend (single series — the card
-title names it). A vertical hairline marks where the simulated warm-up ends
-and live paper trading begins. Hover crosshair/tooltip is added client-side
-from the data-pts JSON baked onto the <svg>.
+Spec: hairline round-join line in the series hue over an area wash that fades
+to nothing, hairline solid gridlines, clean y-ticks, no legend (single series
+— the card title names it). A vertical hairline marks where the simulated
+warm-up ends and live paper trading begins. Hover crosshair/tooltip is added
+client-side from the data-pts JSON baked onto the <svg>. Line width and both
+gradient stops are set in the template's CSS, so the chart follows the theme.
 """
 from __future__ import annotations
 
@@ -86,6 +87,9 @@ def equity_chart_svg(eq: pd.DataFrame, backfill_until: str | None) -> str:
     return f'''<svg viewBox="0 0 {W} {H}" class="eqchart" data-pts='{json.dumps(data)}'
      preserveAspectRatio="xMidYMid meet" role="img"
      aria-label="Grafik nilai portofolio latihan dari waktu ke waktu">
+  <defs><linearGradient id="eqgrad" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" class="g0"/><stop offset="100%" class="g1"/>
+  </linearGradient></defs>
   {grid}{xlab}{marker}
   <path d="{area}" class="area"/>
   <path d="{line}" class="line"/>

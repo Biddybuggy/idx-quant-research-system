@@ -8,40 +8,40 @@
 <link rel="apple-touch-icon" href="icon-180.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="theme-color" content="#07090f">
+<meta name="theme-color" content="#0d0f14">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=DM+Sans:wght@400;500;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap">
 <style>
 /* ── Design tokens ──────────────────────────────────────────────────────────
-   Terminal palette from the Figma "Enhance Stock Dashboard Design" pass:
-   near-black canvas, translucent slate cards, a single green signal hue for
-   anything positive/live, cyan for secondary emphasis. Every colour the
+   Calm dark palette from the Figma Make pass: near-black canvas, flat slate
+   cards, hairline white borders, indigo as the one accent, and green/red kept
+   strictly for gain and loss. No glows, no dot grid, no per-card colour coding
+   — cards are uniform and the numbers carry the emphasis. Every colour the
    markup and the server-rendered chart use flows from here. */
 :root{
   color-scheme:dark;
-  --page:#07090f; --surface:rgba(13,18,32,.80); --surface-solid:#0d1220;
-  --ink:#dde4f0; --ink-2:#8ea3c0; --muted:#5c7a9a;
-  --grid:rgba(255,255,255,.06); --baseline:#3d5875; --border:rgba(0,232,122,.10);
-  --sunken:#111927;
-  --series:#00e87a; --up:#00e87a; --down:#e85050;
-  --good:#00e87a; --warn:#f0a500; --crit:#e85050;
-  --accent:#00c4f0; --violet:#a855f7;
+  --page:#0d0f14; --surface:#13161e; --surface-solid:#13161e; --surface-2:#1a1d28;
+  --ink:#e8eaf0; --ink-2:#a3a9ba; --muted:#6b7080;
+  --grid:rgba(255,255,255,.05); --baseline:#3a3f52;
+  --border:rgba(255,255,255,.07); --border-bright:rgba(255,255,255,.13);
+  --sunken:#1a1d28;
+  --series:#818cf8; --up:#34d399; --down:#f87171;
+  --up-dim:rgba(52,211,153,.12); --down-dim:rgba(248,113,113,.12);
+  --good:#34d399; --crit:#f87171;
+  --warn:#fbbf24; --warn-dim:rgba(251,191,36,.12);
+  --accent:#818cf8; --accent-dim:rgba(129,140,248,.15);
   --sans:'DM Sans',system-ui,-apple-system,"Segoe UI",sans-serif;
-  --cond:'Barlow Condensed',system-ui,sans-serif;
-  --mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+  --mono:'DM Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
 }
 *{box-sizing:border-box;margin:0}
 body{background:var(--page);color:var(--ink);
   font-family:var(--sans);
   -webkit-font-smoothing:antialiased;
-  padding:0 0 calc(24px + env(safe-area-inset-bottom));
-  /* Two faint corner glows plus a dot grid — the depth the flat fill lacks. */
-  background-image:
-    radial-gradient(circle at 20% 12%,rgba(0,232,122,.05) 0%,transparent 46%),
-    radial-gradient(circle at 82% 78%,rgba(0,196,240,.045) 0%,transparent 46%),
-    url("data:image/svg+xml,%3Csvg width='40' height='40' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='1' cy='1' r='.75' fill='%23ffffff' fill-opacity='.025'/%3E%3C/svg%3E");
-  background-attachment:fixed}
+  padding:0 0 calc(24px + env(safe-area-inset-bottom))}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border-bright);border-radius:2px}
 .wrap{max-width:480px;margin:0 auto;display:flex;flex-direction:column;gap:12px;
   padding:0 12px}
 /* On phones the main/toprow/side-rail wrappers are transparent, so every card
@@ -49,24 +49,23 @@ body{background:var(--page);color:var(--ink);
    queries below turn them into real grid/flex containers. */
 .main,.toprow,.side-rail,.cols{display:contents}
 
-/* ── Top bar: sticky chrome, the frame the terminal look hangs off ────────── */
-.topbar{position:sticky;top:0;z-index:30;background:rgba(7,9,15,.88);
-  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+/* ── Top bar: solid surface chrome, the one piece of structure above the grid */
+.topbar{position:sticky;top:0;z-index:30;background:var(--surface);
   border-bottom:1px solid var(--border);
   padding:max(8px,env(safe-area-inset-top)) 12px 8px}
 header{display:flex;align-items:center;justify-content:space-between;gap:10px;
   max-width:480px;margin:0 auto}
-.brand{display:flex;align-items:center;gap:9px;min-width:0}
-.mark{flex:0 0 24px;height:24px;border-radius:5px;background:var(--series);
-  display:grid;place-items:center;color:var(--page)}
-header h1{font-family:var(--cond);font-size:17px;font-weight:700;letter-spacing:.14em;
-  text-transform:uppercase;line-height:1.1;white-space:nowrap}
-.asof{color:var(--muted);font-family:var(--mono);font-size:10px;letter-spacing:.08em;
-  text-transform:uppercase;margin-top:1px}
-.lang{border:1px solid var(--border);border-radius:6px;background:var(--sunken);
-  color:var(--ink-2);font-family:var(--mono);font-size:11px;letter-spacing:.1em;
-  padding:5px 10px;cursor:pointer;transition:color .15s,border-color .15s}
-.lang:hover{color:var(--series);border-color:rgba(0,232,122,.35)}
+.brand{display:flex;align-items:center;gap:10px;min-width:0}
+.mark{flex:0 0 28px;height:28px;border-radius:7px;background:var(--accent-dim);
+  border:1px solid rgba(129,140,248,.45);
+  display:grid;place-items:center;color:var(--accent)}
+header h1{font-size:15px;font-weight:600;letter-spacing:-.01em;
+  line-height:1.2;white-space:nowrap}
+.asof{color:var(--muted);font-family:var(--mono);font-size:10.5px;margin-top:2px}
+.lang{border:1px solid var(--border);border-radius:8px;background:var(--surface-2);
+  color:var(--ink-2);font-family:var(--mono);font-size:11px;letter-spacing:.08em;
+  padding:6px 11px;cursor:pointer;transition:color .15s,border-color .15s}
+.lang:hover{color:var(--accent);border-color:rgba(129,140,248,.4)}
 
 /* ── Ticker strip: real JCI numbers, read left-to-right like a tape ───────── */
 .tape{display:flex;align-items:center;gap:18px;overflow-x:auto;
@@ -80,143 +79,142 @@ header h1{font-family:var(--cond);font-size:17px;font-weight:700;letter-spacing:
 .tape > *{flex:0 0 auto;display:flex;align-items:center;gap:6px}
 .tape .k{color:var(--muted);text-transform:uppercase;font-style:normal}
 .tape .v{color:var(--ink);font-weight:500;font-variant-numeric:tabular-nums}
-.tape .regime{font-weight:600}
-.tape .regime.on{color:var(--series)} .tape .regime.off{color:var(--warn)}
+/* The regime reads as a pill, the way every other state chip on the page does. */
+.tape .regime{font-weight:500;border-radius:20px;padding:3px 9px;gap:5px}
+.tape .regime.on{color:var(--up);background:var(--up-dim)}
+.tape .regime.off{color:var(--warn);background:var(--warn-dim)}
 .pulse{width:6px;height:6px;border-radius:50%;background:currentColor;
   animation:pulse 2s ease-in-out infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
 
-/* ── Cards: translucent slate, hairline of light along the top edge ───────── */
+/* ── Cards: flat slate, one hairline border, nothing else ─────────────────── */
 .card{position:relative;background:var(--surface);border:1px solid var(--border);
-  border-radius:12px;padding:16px;overflow:hidden;
-  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
-.card::before{content:"";position:absolute;top:0;left:0;right:0;height:1px;
-  background:linear-gradient(90deg,transparent,var(--series),transparent);opacity:.55}
-.card--chart::before,.card--trades::before{background:linear-gradient(90deg,transparent,var(--accent),transparent);opacity:.4}
-.card--riskoff::before{background:linear-gradient(90deg,transparent,var(--violet),transparent);opacity:.45}
-.card--signals::before{background:linear-gradient(90deg,transparent,var(--warn),transparent);opacity:.4}
-.banner{border-radius:10px;padding:9px 13px;font-size:13px;display:flex;gap:8px;
-  align-items:center;border:1px solid var(--grid)}
-.banner.warn{background:rgba(240,165,0,.10);border-color:rgba(240,165,0,.28);color:var(--ink)}
-.banner.crit{background:rgba(232,80,80,.10);border-color:rgba(232,80,80,.30);color:var(--ink)}
-.banner.info{background:rgba(13,18,32,.6);color:var(--muted);font-size:12px}
+  border-radius:12px;padding:16px;overflow:hidden}
+.banner{border-radius:10px;padding:10px 14px;font-size:13px;display:flex;gap:8px;
+  align-items:center;border:1px solid var(--border)}
+.banner.warn{background:var(--warn-dim);border-color:rgba(251,191,36,.28);color:var(--ink)}
+.banner.crit{background:var(--down-dim);border-color:rgba(248,113,113,.30);color:var(--ink)}
+.banner.info{background:var(--surface);color:var(--muted);font-size:12px}
 .status{font-size:14.5px;line-height:1.5;color:var(--ink-2);margin-bottom:14px}
-.label{font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;
-  color:var(--muted);margin-bottom:6px}
-.hero{font-family:var(--mono);font-size:38px;font-weight:600;letter-spacing:-1px;
+/* One label style for the whole page: sans, small, wide, muted. */
+.label{font-size:11px;letter-spacing:.05em;text-transform:uppercase;
+  color:var(--muted);margin-bottom:8px}
+.hero{font-family:var(--mono);font-size:38px;font-weight:500;letter-spacing:-.03em;
   line-height:1.05;color:var(--ink);font-variant-numeric:tabular-nums}
-.hero .cur{font-family:var(--cond);font-size:20px;font-weight:600;color:var(--muted);
-  margin-right:4px;letter-spacing:0}
+.hero .cur{font-family:var(--sans);font-size:20px;font-weight:500;color:var(--muted);
+  margin-right:5px;letter-spacing:0}
 .deltas{display:flex;gap:14px;margin-top:10px;font-family:var(--mono);font-size:12.5px}
 .delta.up{color:var(--up)} .delta.down{color:var(--down)} .delta.flat{color:var(--muted)}
 .delta small{color:var(--muted);font-size:11px;margin-left:4px}
-h2{font-family:var(--mono);font-size:10px;font-weight:500;color:var(--muted);
-  text-transform:uppercase;letter-spacing:.16em;margin-bottom:12px}
+h2{font-size:11px;font-weight:400;color:var(--muted);
+  text-transform:uppercase;letter-spacing:.05em;margin-bottom:14px}
 .eqchart{width:100%;height:auto;display:block}
 .eqchart .grid{stroke:var(--grid);stroke-width:1}
 .eqchart .marker{stroke:var(--baseline);stroke-width:1}
 .eqchart .tick{fill:var(--muted);font-family:var(--mono);font-size:9px;
   font-variant-numeric:tabular-nums}
-.eqchart .area{fill:var(--series);opacity:.16}
-.eqchart .line{fill:none;stroke:var(--series);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+/* Area wash fades to nothing rather than sitting as a flat block of colour.
+   Stops live here, not in chart.py, so the chart stays theme-driven. */
+.eqchart .area{fill:url(#eqgrad)}
+.eqchart .g0{stop-color:var(--series);stop-opacity:.22}
+.eqchart .g1{stop-color:var(--series);stop-opacity:0}
+.eqchart .line{fill:none;stroke:var(--series);stroke-width:1.5;stroke-linejoin:round;stroke-linecap:round}
 .eqchart .hov-x{stroke:var(--baseline);stroke-width:1}
 .eqchart .hov-dot{fill:var(--series);stroke:var(--surface-solid);stroke-width:2}
 .chartwrap{position:relative}
-.tip{position:absolute;pointer-events:none;background:var(--surface-solid);
-  border:1px solid rgba(0,232,122,.25);color:var(--muted);
-  border-radius:6px;padding:5px 9px;font-family:var(--mono);font-size:11px;display:none;
+.tip{position:absolute;pointer-events:none;background:var(--surface-2);
+  border:1px solid var(--border-bright);color:var(--muted);
+  border-radius:8px;padding:7px 12px;font-family:var(--mono);font-size:11px;display:none;
   white-space:nowrap;transform:translate(-50%,-115%);box-shadow:0 4px 16px rgba(0,0,0,.5)}
-.tip b{color:var(--series);font-variant-numeric:tabular-nums;font-weight:600}
+.tip b{color:var(--accent);font-variant-numeric:tabular-nums;font-weight:500}
 .caption{color:var(--muted);font-size:11.5px;margin-top:8px;line-height:1.45}
 .row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;
-  border-bottom:1px solid var(--grid)}
+  border-bottom:1px solid var(--border)}
 .row:last-child{border-bottom:none;padding-bottom:0}
 .row:first-of-type{padding-top:2px}
-.tk{font-family:var(--cond);font-weight:600;font-size:15px;letter-spacing:.03em}
-.sub{color:var(--muted);font-family:var(--mono);font-size:10px;margin-top:2px}
+.tk{font-weight:500;font-size:13.5px;letter-spacing:-.01em}
+.sub{color:var(--muted);font-family:var(--mono);font-size:10.5px;margin-top:3px}
 .num{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:12.5px}
-.badge{display:inline-flex;align-items:center;gap:5px;border-radius:4px;
-  padding:3px 8px;font-family:var(--mono);font-size:9.5px;font-weight:500;
-  letter-spacing:.06em;text-transform:uppercase;border:1px solid transparent}
-.badge.buy{background:rgba(0,232,122,.12);border-color:rgba(0,232,122,.28);color:var(--good)}
-.badge.sell{background:rgba(232,80,80,.12);border-color:rgba(232,80,80,.28);color:var(--crit)}
-.badge.hold{background:rgba(0,196,240,.12);border-color:rgba(0,196,240,.28);color:var(--accent)}
+.badge{display:inline-flex;align-items:center;gap:5px;border-radius:6px;
+  padding:3px 9px;font-size:11px;font-weight:500;border:1px solid transparent}
+.badge.buy{background:var(--up-dim);color:var(--good)}
+.badge.sell{background:var(--down-dim);color:var(--crit)}
+.badge.hold{background:var(--accent-dim);color:var(--accent)}
 .badge .dot{width:6px;height:6px;border-radius:50%;background:currentColor}
 .reason{color:var(--muted);font-size:12.5px;line-height:1.55;margin-top:7px}
 .empty{color:var(--ink-2);font-size:13px;line-height:1.55}
 
 /* ── Footer: a status strip, then the standing disclaimer ────────────────── */
 .statusbar{display:flex;flex-wrap:wrap;gap:6px 16px;justify-content:space-between;
-  border-top:1px solid var(--border);padding:10px 2px 8px;
-  font-family:var(--mono);font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;
+  border-top:1px solid var(--border);padding:12px 2px 8px;
+  font-size:11px;letter-spacing:.05em;text-transform:uppercase;
   color:var(--muted)}
 .statusbar span{display:flex;align-items:center;gap:6px}
-.statusbar .live{color:var(--series)}
+.statusbar .live{color:var(--up)}
 .statusbar .warn{color:var(--warn)}
 footer{color:var(--muted);font-size:11px;line-height:1.6;text-align:center;padding:2px 12px}
 /* research section */
-.mkt{display:flex;gap:12px;flex-wrap:wrap;color:var(--muted);font-family:var(--mono);
-  font-size:10px;letter-spacing:.06em;text-transform:uppercase;
-  padding-bottom:11px;border-bottom:1px solid var(--grid);margin-bottom:4px}
-.mkt b{color:var(--ink);font-variant-numeric:tabular-nums;font-weight:600;
-  text-transform:none;letter-spacing:0}
-details.stock{border-bottom:1px solid var(--grid)}
+.mkt{display:flex;gap:12px;flex-wrap:wrap;color:var(--muted);
+  font-size:11px;letter-spacing:.05em;text-transform:uppercase;
+  padding-bottom:12px;border-bottom:1px solid var(--border);margin-bottom:4px}
+.mkt b{color:var(--ink);font-family:var(--mono);font-variant-numeric:tabular-nums;
+  font-weight:500;text-transform:none;letter-spacing:0}
+details.stock{border-bottom:1px solid var(--border)}
 details.stock:last-of-type{border-bottom:none}
 details.stock summary{display:flex;align-items:center;gap:10px;padding:11px 0;
-  cursor:pointer;list-style:none;-webkit-tap-highlight-color:transparent}
+  cursor:pointer;list-style:none;-webkit-tap-highlight-color:transparent;
+  transition:background .12s}
 details.stock summary::-webkit-details-marker{display:none}
-details.stock summary:hover{background:rgba(0,232,122,.03)}
-.rank{flex:0 0 24px;height:24px;border-radius:5px;background:var(--sunken);
-  border:1px solid var(--grid);color:var(--muted);font-family:var(--mono);
-  font-size:10.5px;font-weight:600;
+details.stock summary:hover{background:rgba(255,255,255,.025)}
+.rank{flex:0 0 26px;height:26px;border-radius:7px;background:var(--surface-2);
+  border:1px solid var(--border);color:var(--muted);font-family:var(--mono);
+  font-size:10.5px;font-weight:500;
   display:flex;align-items:center;justify-content:center;font-variant-numeric:tabular-nums}
 .stock .mid{flex:1;min-width:0}
-.vlabel{font-family:var(--mono);font-size:9.5px;font-weight:500;letter-spacing:.08em;
-  text-transform:uppercase;margin-top:3px}
+.vlabel{font-size:11px;font-weight:400;margin-top:3px}
 .vlabel.buy{color:var(--up)} .vlabel.weak{color:var(--down)}
 .vlabel.hold{color:var(--accent)} .vlabel.wait{color:var(--ink-2)}
 .vlabel.muted{color:var(--muted)}
 .arrow{color:var(--muted);font-size:13px}
 .chev{color:var(--muted);font-size:10px;transition:transform .15s;margin-left:2px}
-details[open] .chev{transform:rotate(90deg);color:var(--series)}
-.detail{padding:2px 0 14px 34px}
+details[open] .chev{transform:rotate(90deg);color:var(--accent)}
+.detail{padding:2px 0 14px 36px}
 .dgrid{display:grid;grid-template-columns:1fr 1fr;gap:9px 16px;margin-bottom:8px}
-.dgrid div{font-family:var(--mono);font-size:9.5px;letter-spacing:.08em;
+.dgrid div{font-size:11px;letter-spacing:.05em;
   text-transform:uppercase;color:var(--muted);
-  background:var(--sunken);border-radius:5px;padding:6px 9px}
-.dgrid b{display:block;color:var(--ink);font-weight:600;font-size:12.5px;
-  letter-spacing:0;text-transform:none;
-  font-variant-numeric:tabular-nums;margin-top:3px}
+  background:var(--surface-2);border-radius:8px;padding:8px 11px}
+.dgrid b{display:block;color:var(--ink);font-family:var(--mono);font-weight:500;
+  font-size:12.5px;letter-spacing:0;text-transform:none;
+  font-variant-numeric:tabular-nums;margin-top:4px}
 /* descriptive short-term movement — separated from the long-term view above */
-.stsub{border-top:1px dashed var(--grid);margin-top:10px;padding-top:10px}
+.stsub{border-top:1px solid var(--border);margin-top:10px;padding-top:10px}
 
 /* ── Weak-market screen ─────────────────────────────────────────────────────
    Only rendered while JCI is risk-off. Visually distinct from the momentum
    card so it reads as a separate, explicitly experimental track — never as an
    extension of the ranking above. */
-.card--riskoff{border-color:rgba(168,85,247,.28)}
+.card--riskoff{border-color:rgba(129,140,248,.28)}
 .ro-lede{font-size:13px;color:var(--ink-2);line-height:1.55;margin-bottom:11px}
 .ro-live{display:flex;flex-wrap:wrap;gap:4px 14px;align-items:baseline;
   font-family:var(--mono);font-size:11px;line-height:1.5;
-  padding:9px 11px;border-radius:7px;margin-bottom:12px;
-  background:rgba(240,165,0,.10);border:1px solid rgba(240,165,0,.25);color:var(--ink-2)}
-.ro-live.ok{background:rgba(0,232,122,.09);border-color:rgba(0,232,122,.24)}
+  padding:10px 12px;border-radius:8px;margin-bottom:12px;
+  background:var(--warn-dim);border:1px solid rgba(251,191,36,.25);color:var(--ink-2)}
+.ro-live.ok{background:var(--up-dim);border-color:rgba(52,211,153,.24)}
 .ro-live b{font-variant-numeric:tabular-nums;color:var(--ink)}
 .ro-name{display:flex;align-items:center;gap:10px;padding:9px 0;
-  border-top:1px solid var(--grid)}
+  border-top:1px solid var(--border)}
 .ro-name:first-of-type{border-top:none}
-.ro-rank{flex:0 0 22px;height:22px;border-radius:5px;display:grid;place-items:center;
-  font-family:var(--mono);font-size:10.5px;font-weight:600;color:var(--muted);
-  background:var(--sunken);border:1px solid var(--grid)}
-.ro-tk{flex:1;min-width:0;font-family:var(--cond);font-size:15px;font-weight:600;
-  letter-spacing:.03em}
-.ro-tk small{display:block;font-family:var(--mono);font-weight:400;font-size:10px;
-  color:var(--muted);margin-top:2px;letter-spacing:.03em}
+.ro-rank{flex:0 0 24px;height:24px;border-radius:7px;display:grid;place-items:center;
+  font-family:var(--mono);font-size:10.5px;font-weight:500;color:var(--muted);
+  background:var(--surface-2);border:1px solid var(--border)}
+.ro-tk{flex:1;min-width:0;font-size:13.5px;font-weight:500;letter-spacing:-.01em}
+.ro-tk small{display:block;font-family:var(--mono);font-weight:400;font-size:10.5px;
+  color:var(--muted);margin-top:3px;letter-spacing:0}
 .ro-num{text-align:right;font-family:var(--mono);font-size:12px;
   font-variant-numeric:tabular-nums}
-.ro-num small{display:block;font-size:9.5px;color:var(--muted);letter-spacing:.05em;
-  text-transform:uppercase;margin-top:2px}
-.ro-caveat{margin-top:12px;padding-top:10px;border-top:1px dashed var(--grid);
+.ro-num small{display:block;font-family:var(--sans);font-size:10px;color:var(--muted);
+  letter-spacing:.04em;text-transform:uppercase;margin-top:3px}
+.ro-caveat{margin-top:12px;padding-top:10px;border-top:1px solid var(--border);
   font-size:11px;line-height:1.6;color:var(--muted)}
 /* ── Desktop: a robust two-track layout ─────────────────────────────────────
    .wrap is a 2-column grid (main content + right rail). header/banners/footer
@@ -243,10 +241,11 @@ details[open] .chev{transform:rotate(90deg);color:var(--series)}
     align-items:start;
     gap:16px;
   }
-  header h1{font-size:20px}
-  .asof{font-size:10.5px}
-  .lang{font-size:12px;padding:6px 12px}
-  h2{font-size:10.5px;margin-bottom:14px}
+  header h1{font-size:16px}
+  .asof{font-size:11px}
+  .lang{font-size:12px;padding:6px 13px}
+  h2{font-size:11px;margin-bottom:16px}
+  .card{padding:20px}
 
   .main{display:flex;flex-direction:column;gap:16px;grid-column:1;min-width:0}
   .toprow{display:grid;grid-template-columns:repeat(auto-fit,minmax(258px,1fr));
@@ -260,8 +259,8 @@ details[open] .chev{transform:rotate(90deg);color:var(--series)}
 
   .card--hero{display:flex;flex-direction:column;justify-content:space-between}
   .status{font-size:15px;max-width:46ch}
-  .label{font-size:10px}
-  .hero{font-size:44px;letter-spacing:-1.5px}
+  .label{font-size:11px}
+  .hero{font-size:44px}
   .hero .cur{font-size:22px}
   .deltas{font-size:13px}
   .card--chart .eqchart{height:200px}
@@ -270,12 +269,12 @@ details[open] .chev{transform:rotate(90deg);color:var(--series)}
      shorter .side-rail column — scrolls internally instead of leaving a lone
      peninsula of cards below an empty side rail. */
   .stock-list{max-height:460px;overflow-y:auto;scrollbar-width:thin;
-    scrollbar-color:rgba(0,232,122,.22) transparent}
-  .stock-list::-webkit-scrollbar{width:6px}
-  .stock-list::-webkit-scrollbar-thumb{background:rgba(0,232,122,.22);border-radius:3px}
-  details.stock summary{gap:12px;padding:12px 0}
+    scrollbar-color:var(--border-bright) transparent}
+  .stock-list::-webkit-scrollbar{width:4px}
+  .stock-list::-webkit-scrollbar-thumb{background:var(--border-bright);border-radius:2px}
+  details.stock summary{gap:12px;padding:13px 0}
   .rank{flex-basis:28px;height:28px}
-  .tk{font-size:16px}
+  .tk{font-size:14px}
   .num{font-size:13px}
   .detail{padding-left:40px}
   .dgrid{grid-template-columns:repeat(3,minmax(0,1fr));gap:10px 12px}
@@ -302,10 +301,9 @@ details[open] .chev{transform:rotate(90deg);color:var(--series)}
   <header>
     <div class="brand">
       <span class="mark" aria-hidden="true">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-             stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/>
-          <line x1="6" y1="20" x2="6" y2="14"/>
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor"
+             stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M2 10L5 6.5L8 8.5L12 3"/>
         </svg>
       </span>
       <div>

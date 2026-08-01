@@ -41,7 +41,7 @@ def main():
     (SITE / "manifest.webmanifest").write_text(json.dumps({
         "name": "Dasbor Saham", "short_name": "Saham",
         "start_url": ".", "display": "standalone",
-        "background_color": "#07090f", "theme_color": "#00e87a",
+        "background_color": "#0d0f14", "theme_color": "#818cf8",
         "icons": [{"src": "icon-192.png", "sizes": "192x192", "type": "image/png"},
                   {"src": "icon-512.png", "sizes": "512x512", "type": "image/png"}],
     }))
